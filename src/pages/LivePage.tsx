@@ -3,7 +3,6 @@ import { PipelineStrip } from '@/components/live/PipelineStrip';
 import { ViewportCard } from '@/components/live/ViewportCard';
 import { FloatingToolbar } from '@/components/live/FloatingToolbar';
 import { TimelineCard } from '@/components/live/TimelineCard';
-import { PipelineDebug } from '@/components/live/PipelineDebug';
 import { IntelPanel } from '@/components/intel/IntelPanel';
 import { SegmentedControl, Card, CardHeader, StatusDot } from '@/components/ui';
 import { useUiStore, MobileIntelTab } from '@/stores/uiStore';
@@ -30,9 +29,6 @@ export const LivePage: React.FC = () => {
 
         {/* Row 3: Floating Toolbar (48px) */}
         <FloatingToolbar />
-
-        {/* Temporary Pipeline Debug for Phase 3 */}
-        <PipelineDebug />
 
         {/* Desktop / Tablet Timeline (≥ 640px) */}
         <div className="hidden sm:block">

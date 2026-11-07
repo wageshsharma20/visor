@@ -11,10 +11,14 @@ import {
   StatusDot,
   IconButton,
 } from '@/components/ui';
+import { PipelineDebug } from '@/components/live/PipelineDebug';
 
 export const IntelContent: React.FC = () => {
   return (
     <div className="flex flex-col gap-4 w-full h-full select-none">
+      {/* Temporary Phase 3/4 Debug Card in Intel Panel */}
+      <PipelineDebug />
+
       {/* 1. CURRENT DETECTION CARD */}
       <Card className="flex flex-col shrink-0">
         <CardHeader

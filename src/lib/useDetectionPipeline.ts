@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Tracker } from '@/engine/tracker';
 import { SimulatedSceneSource } from '@/sources/simulatedScene';
 import { WebSocketSource } from '@/sources/websocketSource';
+import { RecordedTracksSource } from '@/sources/recordedTracks';
 import { useDetectionStore } from '@/stores/detectionStore';
 import { useUiStore } from '@/stores/uiStore';
 import { DetectionFrame, DescriptionUpdate, DetectionSource } from '@/types/detection';
@@ -10,6 +11,7 @@ import { DetectionFrame, DescriptionUpdate, DetectionSource } from '@/types/dete
 export const globalTracker = new Tracker();
 export const globalSimulatedSource = new SimulatedSceneSource();
 export const globalWebSocketSource = new WebSocketSource();
+export const globalRecordedSource = new RecordedTracksSource();
 
 let activeSource: DetectionSource = globalSimulatedSource;
 

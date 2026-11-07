@@ -1,9 +1,61 @@
 import {
+  BBox,
   DescriptionUpdate,
   DetectionFrame,
   DetectionSource,
+  RawDetection,
   SourceStatus,
 } from '@/types/detection';
+
+function isBBox(obj: unknown): obj is BBox {
+  if (!obj || typeof obj !== 'object') return false;
+  const b = obj as Record<string, unknown>;
+  return (
+    typeof b.x === 'number' &&
+    !isNaN(b.x) &&
+    typeof b.y === 'number' &&
+    !isNaN(b.y) &&
+    typeof b.w === 'number' &&
+    !isNaN(b.w) &&
+    typeof b.h === 'number' &&
+    !isNaN(b.h)
+  );
+}
+
+function isRawDetection(obj: unknown): obj is RawDetection {
+  if (!obj || typeof obj !== 'object') return false;
+  const d = obj as Record<string, unknown>;
+  return (
+    typeof d.trackId === 'string' &&
+    d.trackId.trim().length > 0 &&
+    typeof d.classId === 'string' &&
+    d.classId.trim().length > 0 &&
+    typeof d.confidence === 'number' &&
+    !isNaN(d.confidence) &&
+    isBBox(d.bbox)
+  );
+}
+
+export function validateDetectionFrame(data: unknown): data is DetectionFrame {
+  if (!data || typeof data !== 'object') return false;
+  const f = data as Record<string, unknown>;
+
+  if (typeof f.frameId !== 'number' || isNaN(f.frameId)) return false;
+  if (typeof f.ts !== 'number' || isNaN(f.ts)) return false;
+  if (!f.source || typeof f.source !== 'object') return false;
+
+  const src = f.source as Record<string, unknown>;
+  if (typeof src.width !== 'number' || typeof src.height !== 'number') return false;
+
+  if (!Array.isArray(f.detections)) return false;
+  for (const det of f.detections) {
+    if (!isRawDetection(det)) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 export class WebSocketSource implements DetectionSource {
   readonly id = 'remote-websocket';
@@ -18,6 +70,7 @@ export class WebSocketSource implements DetectionSource {
   private lastFpsCalcTime = 0;
   private frameCountSinceLastCalc = 0;
   private currentFps = 0;
+  private malformedFrameCount = 0;
 
   private readonly frameListeners = new Set<(f: DetectionFrame) => void>();
   private readonly descListeners = new Set<(d: DescriptionUpdate) => void>();
@@ -40,9 +93,18 @@ export class WebSocketSource implements DetectionSource {
     return this.url;
   }
 
+  getMalformedFrameCount(): number {
+    return this.malformedFrameCount;
+  }
+
+  resetMalformedFrameCount(): void {
+    this.malformedFrameCount = 0;
+  }
+
   async start(): Promise<void> {
     this.isExplicitlyStopped = false;
     this.reconnectAttempts = 0;
+    this.malformedFrameCount = 0;
     this.connect();
   }
 
@@ -103,12 +165,15 @@ export class WebSocketSource implements DetectionSource {
       this.ws.onmessage = (event: MessageEvent) => {
         try {
           const raw = typeof event.data === 'string' ? JSON.parse(event.data) : null;
-          if (raw && typeof raw === 'object' && Array.isArray(raw.detections)) {
-            const frame = raw as DetectionFrame;
-            this.handleFrame(frame);
+          if (validateDetectionFrame(raw)) {
+            this.handleFrame(raw);
+          } else {
+            // Drop malformed frame and count it
+            this.malformedFrameCount++;
           }
         } catch {
-          // Ignore invalid JSON payloads
+          // JSON parsing failed: drop and count
+          this.malformedFrameCount++;
         }
       };
 
