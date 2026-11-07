@@ -1,30 +1,13 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
-import { UiReviewPage } from './pages/UiReviewPage';
-import { Button } from './components/ui';
-
-const LiveStub: React.FC = () => {
-  return (
-    <div className="min-h-screen bg-canvas bg-bg-1 text-text-1 flex flex-col items-center justify-center p-6 text-center">
-      <div className="max-w-md p-6 bg-bg-2 border border-line-1 rounded-card space-y-4">
-        <div className="font-mono text-label uppercase tracking-widest text-accent">
-          VISOR // GRAPHITE NODE
-        </div>
-        <h1 className="text-metric font-mono">Phase 1.5 Foundations Active</h1>
-        <p className="text-small text-text-2">
-          Node-based AI workbench design system loaded. Click below to inspect the UI Review harness.
-        </p>
-        <div className="pt-2">
-          <Link to="/__ui">
-            <Button variant="primary" size={36}>
-              Open UI Review Harness (/__ui) →
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AppLayout } from '@/components/layout';
+import { LivePage } from '@/pages/LivePage';
+import { OverviewPage } from '@/pages/OverviewPage';
+import { ModelsPage } from '@/pages/ModelsPage';
+import { HistoryPage } from '@/pages/HistoryPage';
+import { AnalyticsPage } from '@/pages/AnalyticsPage';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { UiReviewPage } from '@/pages/UiReviewPage';
 
 export const App: React.FC = () => {
   return (
@@ -36,8 +19,61 @@ export const App: React.FC = () => {
     >
       <Routes>
         <Route path="/" element={<Navigate to="/live" replace />} />
-        <Route path="/live" element={<LiveStub />} />
+
+        {/* Core application routes wrapped in standard AppLayout */}
+        <Route
+          path="/live"
+          element={
+            <AppLayout>
+              <LivePage />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/overview"
+          element={
+            <AppLayout>
+              <OverviewPage />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/models"
+          element={
+            <AppLayout>
+              <ModelsPage />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <AppLayout>
+              <HistoryPage />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <AppLayout>
+              <AnalyticsPage />
+            </AppLayout>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <AppLayout>
+              <SettingsPage />
+            </AppLayout>
+          }
+        />
+
+        {/* Dev-only UI review page */}
         {import.meta.env.DEV && <Route path="/__ui" element={<UiReviewPage />} />}
+
+        {/* Fallback to /live */}
         <Route path="*" element={<Navigate to="/live" replace />} />
       </Routes>
     </BrowserRouter>

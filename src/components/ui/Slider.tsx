@@ -45,9 +45,10 @@ export const Slider: React.FC<SliderProps> = ({
       const rect = trackRef.current.getBoundingClientRect();
       const thumbRadius = variant === 'compact' ? 8 : 10;
       const padLeft = variant === 'compact' ? 2 : 4;
-      const railStart = padLeft + thumbRadius;
-      const railWidth = Math.max(1, rect.width - railStart * 2);
-      const rawPct = (clientX - (rect.left + railStart)) / railWidth;
+      const trackLeft = rect.left;
+      const railWidth = Math.max(1, rect.width - (padLeft + thumbRadius) * 2);
+      // Map pointer position using the rail: (clientX - (trackLeft + padLeft + thumbRadius)) / railWidth
+      const rawPct = (clientX - (trackLeft + padLeft + thumbRadius)) / railWidth;
       const clampedPct = Math.max(0, Math.min(1, rawPct));
       const rawVal = min + clampedPct * (max - min);
       const steppedVal = Math.round(rawVal / step) * step;
