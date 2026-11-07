@@ -1,4 +1,5 @@
 import React, { useRef, useCallback } from 'react';
+import { usePrefersReducedMotion } from '@/lib/usePrefersReducedMotion';
 
 export interface SliderProps {
   variant?: 'default' | 'compact';
@@ -32,22 +33,28 @@ export const Slider: React.FC<SliderProps> = ({
   className = '',
 }) => {
   const trackRef = useRef<HTMLDivElement | null>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const percentage = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
   const trackBg = surface === 'well' ? 'bg-bg-4' : 'bg-bg-3';
+  const transitionClass = prefersReducedMotion ? '' : 'transition-transform duration-fast';
 
   const updateValueFromPointer = useCallback(
     (clientX: number) => {
       if (!trackRef.current || disabled) return;
       const rect = trackRef.current.getBoundingClientRect();
-      const rawPct = (clientX - rect.left) / rect.width;
+      const thumbRadius = variant === 'compact' ? 8 : 10;
+      const padLeft = variant === 'compact' ? 2 : 4;
+      const railStart = padLeft + thumbRadius;
+      const railWidth = Math.max(1, rect.width - railStart * 2);
+      const rawPct = (clientX - (rect.left + railStart)) / railWidth;
       const clampedPct = Math.max(0, Math.min(1, rawPct));
       const rawVal = min + clampedPct * (max - min);
       const steppedVal = Math.round(rawVal / step) * step;
       const finalVal = Math.max(min, Math.min(max, Number(steppedVal.toFixed(4))));
       onChange(finalVal);
     },
-    [disabled, max, min, onChange, step]
+    [disabled, max, min, onChange, step, variant]
   );
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -100,20 +107,37 @@ export const Slider: React.FC<SliderProps> = ({
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onKeyDown={handleKeyDown}
-          className={`relative w-[120px] h-5 ${trackBg} rounded-full cursor-pointer overflow-hidden p-0.5 focus-visible:outline-none focus-visible:shadow-focus`}
+          className={`relative w-[120px] h-5 ${trackBg} rounded-full cursor-pointer overflow-hidden focus-visible:outline-none focus-visible:shadow-focus`}
         >
-          {/* White fill pill with transform: scaleX */}
+          {/* 1. Rail: left 2px, width: calc(100% - 4px - 16px) = calc(100% - 20px) */}
           <div
-            className="absolute inset-y-0.5 left-0.5 w-[calc(100%-4px)] bg-fill-white rounded-full origin-left transition-transform duration-fast pointer-events-none"
-            style={{ transform: `scaleX(${percentage / 100})` }}
-          />
-          {/* Dark thumb with transform: translateX */}
-          <div
-            className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-bg-4 border border-line-2 origin-left transition-transform duration-fast pointer-events-none"
-            style={{
-              transform: `translateX(calc(${percentage}% - ${percentage / 100 * 16}px))`,
-            }}
-          />
+            data-slider-rail="compact"
+            className="absolute top-0.5 bottom-0.5 left-0.5 pointer-events-none"
+            style={{ width: 'calc(100% - 20px)' }}
+          >
+            {/* 2. Thumb carrier: same width as rail, translateX(P%) */}
+            <div
+              data-slider-carrier="compact"
+              className={`relative w-full h-full ${transitionClass} pointer-events-none`}
+              style={{ transform: `translateX(${percentage}%)` }}
+            >
+              {/* 3. Fill: full-width white pill, right at thumb center (8px) */}
+              <div
+                data-slider-fill="compact"
+                className="absolute inset-y-0 bg-fill-white rounded-full pointer-events-none z-10"
+                style={{
+                  right: 'calc(100% - 8px)',
+                  width: 'calc(100% + 16px)',
+                }}
+              />
+
+              {/* 16px dark circle thumb at carrier left: 0 */}
+              <div
+                data-slider-thumb="compact"
+                className="absolute top-0 left-0 w-4 h-4 rounded-full bg-bg-4 border border-line-2 pointer-events-none z-30"
+              />
+            </div>
+          </div>
         </div>
         <span className="font-mono text-data text-text-2 w-10 text-right shrink-0">
           {formatValue(value)}
@@ -121,8 +145,6 @@ export const Slider: React.FC<SliderProps> = ({
       </div>
     );
   }
-
-  const scaleFactor = percentage > 0 ? 100 / percentage : 1;
 
   return (
     <div className={`flex flex-col gap-1.5 w-full select-none ${disabled ? 'opacity-40' : ''} ${className}`}>
@@ -148,41 +170,77 @@ export const Slider: React.FC<SliderProps> = ({
       >
         {/* Layer 1: Base min/max labels rendered on the track background in text-3 */}
         {(minLabel || maxLabel) && (
-          <div className="absolute inset-0 flex items-center justify-between px-3 text-small text-text-3 pointer-events-none select-none z-0">
-            <span>{minLabel}</span>
-            <span>{maxLabel}</span>
-          </div>
-        )}
-
-        {/* Layer 2: White fill pill animated with scaleX */}
-        <div
-          className="absolute inset-y-1 left-1 w-[calc(100%-8px)] bg-fill-white rounded-full origin-left transition-transform duration-fast pointer-events-none z-10"
-          style={{ transform: `scaleX(${percentage / 100})` }}
-        />
-
-        {/* Layer 3: Duplicate min/max labels clipped to the white fill in on-white color */}
-        {(minLabel || maxLabel) && (
           <div
-            className="absolute inset-y-1 left-1 w-[calc(100%-8px)] rounded-full overflow-hidden origin-left transition-transform duration-fast pointer-events-none select-none z-20"
-            style={{ transform: `scaleX(${percentage / 100})` }}
+            data-slider-labels-base
+            className="absolute inset-0 flex items-center justify-between px-7 text-small text-text-3 pointer-events-none select-none z-0"
           >
-            <div
-              className="w-full h-full flex items-center justify-between px-3 text-small text-on-white font-medium origin-left"
-              style={{ transform: `scaleX(${scaleFactor})` }}
-            >
-              <span>{minLabel}</span>
-              <span>{maxLabel}</span>
-            </div>
+            <span data-slider-min-label>{minLabel}</span>
+            <span data-slider-max-label>{maxLabel}</span>
           </div>
         )}
 
-        {/* Layer 4: Dark 20px circle thumb animated with translateX */}
+        {/* 1. Rail: left 4px, width: calc(100% - 8px - 20px) = calc(100% - 28px) */}
         <div
-          className="absolute top-1 left-1 w-5 h-5 rounded-full bg-bg-4 border border-line-2 transition-transform duration-fast pointer-events-none z-30"
-          style={{
-            transform: `translateX(calc(${percentage}% - ${percentage / 100 * 20}px))`,
-          }}
-        />
+          data-slider-rail="default"
+          className="absolute top-1 bottom-1 left-1 pointer-events-none"
+          style={{ width: 'calc(100% - 28px)' }}
+        >
+          {/* 2. Thumb carrier: same width as rail, translateX(P%) */}
+          <div
+            data-slider-carrier="default"
+            className={`relative w-full h-full ${transitionClass} pointer-events-none`}
+            style={{ transform: `translateX(${percentage}%)` }}
+          >
+            {/* 3. Fill: full-width white pill, right at thumb center (10px) */}
+            <div
+              data-slider-fill="default"
+              className="absolute inset-y-0 bg-fill-white rounded-full pointer-events-none z-10"
+              style={{
+                right: 'calc(100% - 10px)',
+                width: 'calc(100% + 20px)',
+              }}
+            />
+
+            {/* 4. On-white label layer: clipped to the fill with inverse translateX */}
+            {(minLabel || maxLabel) && (
+              <div
+                data-slider-clip
+                className="absolute inset-y-0 overflow-hidden pointer-events-none select-none z-20"
+                style={{
+                  right: 'calc(100% - 10px)',
+                  width: 'calc(100% + 20px)',
+                }}
+              >
+                <div
+                  className={`absolute inset-y-0 ${transitionClass}`}
+                  style={{
+                    left: 'calc(100% - 10px)',
+                    width: 'calc(100% - 20px)',
+                    transform: `translateX(-${percentage}%)`,
+                  }}
+                >
+                  <div
+                    data-slider-labels-clipped
+                    className="absolute inset-y-0 flex items-center justify-between px-7 text-small text-on-white font-medium"
+                    style={{
+                      left: '-4px',
+                      width: 'calc(100% + 28px)',
+                    }}
+                  >
+                    <span>{minLabel}</span>
+                    <span>{maxLabel}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 20px dark circle thumb at carrier left: 0 */}
+            <div
+              data-slider-thumb="default"
+              className="absolute top-0 left-0 w-5 h-5 rounded-full bg-bg-4 border border-line-2 pointer-events-none z-30"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

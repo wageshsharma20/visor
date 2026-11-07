@@ -70,6 +70,18 @@ export const UiReviewPage: React.FC = () => {
   // State for interactive primitives
   const [sliderVal, setSliderVal] = useState(0.65);
   const [compactSliderVal, setCompactSliderVal] = useState(0.5);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as unknown as { __setSliderValues?: (v: number, cv: number) => void }).__setSliderValues = (
+        v: number,
+        cv: number
+      ) => {
+        setSliderVal(v);
+        setCompactSliderVal(cv);
+      };
+    }
+  }, []);
   const [switchVal, setSwitchVal] = useState(true);
   const [segmentVal, setSegmentVal] = useState<'demo' | 'webcam'>('demo');
   const [selectVal, setSelectVal] = useState<string>('yolov8n');
@@ -328,7 +340,7 @@ export const UiReviewPage: React.FC = () => {
         </Card>
 
         {/* SECTION 3: FORM CONTROLS & PILL SLIDERS */}
-        <Card>
+        <Card id="section-slider">
           <CardHeader
             title="3. Controls & Form Primitives (DESIGN.md §8)"
             icon={<Sliders />}
@@ -343,8 +355,8 @@ export const UiReviewPage: React.FC = () => {
               <Slider
                 surface="well"
                 label="Confidence Threshold"
-                min={0.3}
-                max={0.95}
+                min={0}
+                max={1}
                 step={0.05}
                 minLabel="Low"
                 maxLabel="High"
