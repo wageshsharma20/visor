@@ -1,0 +1,51 @@
+:root {
+  /* Surfaces */
+  --bg-0: #07090B;
+  --bg-1: #0B0E12;
+  --bg-2: #10141A;
+  --bg-3: #161B22;
+
+  /* Hairlines and Dividers */
+  --line-1: #1C232B;
+  --line-2: #28313B;
+
+  /* Text Colors */
+  --text-1: #E6EDF3;
+  --text-2: #97A3AF;
+  --text-3: #5C6773;
+
+  /* Accents & Status */
+  --cyan: #2BD9F0;
+  --cyan-dim: rgba(43, 217, 240, 0.14);
+  --amber: #F5A524;
+  --green: #3DD68C;
+  --red: #F2555A;
+
+  /* Detection Classes */
+  --class-person: #2BD9F0;
+  --class-vehicle: #7FA8FF;
+  --class-bag: #B8A9D9;
+  --class-animal: #8FD3A8;
+  --class-other: #97A3AF;
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 240ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Shadows (Floating layers only: menus, dialogs, tooltips) */
+  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  /* Focus Ring */
+  --focus-ring: 0 0 0 1px var(--bg-0), 0 0 0 2px var(--cyan);
+
+  /* Z-Index Hierarchy */
+  --z-base: 0;
+  --z-overlay: 10;
+  --z-sticky: 20;
+  --z-drawer: 40;
+  --z-dialog: 50;
+  --z-toast: 60;
+  --z-tooltip: 70;
+}

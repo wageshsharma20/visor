@@ -1,0 +1,96 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource/jetbrains-mono';
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, ::before, ::after {
+    border-color: var(--line-1);
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-0);
+    color: var(--text-1);
+    font-family: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+    line-height: 20px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Monospace typography defaults */
+  code, kbd, samp, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: var(--cyan-dim);
+    color: var(--text-1);
+  }
+
+  /* Global dark scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--bg-1);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--bg-2);
+    border-radius: 4px;
+    border: 2px solid var(--bg-1);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--bg-3);
+  }
+
+  /* Focus ring for keyboard accessibility */
+  :focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 1px var(--bg-0), 0 0 0 2px var(--cyan) !important;
+  }
+}
+
+/* Reduced motion support per DESIGN.md §9 */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation: none !important;
+    transition-property: opacity !important;
+    transition-duration: 120ms !important;
+    transform: none !important;
+  }
+}
+
+/* Shimmer animation keyframes for skeletons */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-2) 25%,
+    var(--bg-3) 50%,
+    var(--bg-2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite linear;
+}
