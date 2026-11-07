@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Radio,
+  LayoutDashboard,
   Layers,
   Clock,
+  BarChart2,
+  Settings as SettingsIcon,
+  LogOut,
   Zap,
 } from 'lucide-react';
-import { Tooltip } from '@/components/ui';
+import { Tooltip, Dialog, Button } from '@/components/ui';
 
 interface NavItem {
   path: string;
@@ -23,8 +27,14 @@ const NAV_ITEMS: NavItem[] = [
     shortcut: 'g l',
   },
   {
+    path: '/overview',
+    label: 'Overview',
+    icon: <LayoutDashboard className="w-4 h-4" />,
+    shortcut: 'g o',
+  },
+  {
     path: '/models',
-    label: 'Model Registry',
+    label: 'Model Management',
     icon: <Layers className="w-4 h-4" />,
     shortcut: 'g m',
   },
@@ -34,11 +44,23 @@ const NAV_ITEMS: NavItem[] = [
     icon: <Clock className="w-4 h-4" />,
     shortcut: 'g h',
   },
+  {
+    path: '/analytics',
+    label: 'Analytics',
+    icon: <BarChart2 className="w-4 h-4" />,
+    shortcut: 'g a',
+  },
+  {
+    path: '/settings',
+    label: 'Settings',
+    icon: <SettingsIcon className="w-4 h-4" />,
+  },
 ];
 
 export const IconRail: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
 
   return (
     <>
@@ -56,7 +78,7 @@ export const IconRail: React.FC = () => {
 
           <div className="w-6 h-[1px] bg-line-1" />
 
-          {/* Nav Items (3 items only) */}
+          {/* Nav Items */}
           <nav className="flex flex-col items-center gap-2">
             {NAV_ITEMS.map((item) => {
               const isActive = location.pathname === item.path;
@@ -91,8 +113,20 @@ export const IconRail: React.FC = () => {
           </nav>
         </div>
 
-        {/* Empty bottom space to balance layout */}
-        <div />
+        {/* Bottom: Exit action */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-6 h-[1px] bg-line-1" />
+          <Tooltip side="right" content="Exit Session">
+            <button
+              type="button"
+              onClick={() => setExitDialogOpen(true)}
+              aria-label="Exit Session"
+              className="w-8 h-8 rounded-control flex items-center justify-center text-icon-dim hover:text-red hover:bg-bg-3 transition-colors duration-fast focus-visible:outline-none focus-visible:shadow-focus"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </Tooltip>
+        </div>
       </aside>
 
       {/* MOBILE FLOATING NAV (< 640px): Centered bottom capsule */}
@@ -119,6 +153,35 @@ export const IconRail: React.FC = () => {
           );
         })}
       </nav>
+
+      {/* Exit confirmation dialog */}
+      <Dialog
+        open={exitDialogOpen}
+        onClose={() => setExitDialogOpen(false)}
+        title="Exit VISOR Session"
+        description="Are you sure you want to disconnect from the active telemetry stream?"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size={32} onClick={() => setExitDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size={32}
+              onClick={() => {
+                setExitDialogOpen(false);
+                navigate('/live');
+              }}
+            >
+              Disconnect
+            </Button>
+          </div>
+        }
+      >
+        <div className="text-small text-text-3">
+          Your telemetry stream will be unmounted and local state will be kept intact.
+        </div>
+      </Dialog>
     </>
   );
 };

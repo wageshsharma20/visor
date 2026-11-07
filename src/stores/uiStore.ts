@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 export type TimeWindow = '1m' | '5m' | '15m';
+export type MobileIntelTab = 'current' | 'recent' | 'timeline';
 
 export interface UiState {
   threshold: number; // 0.30 - 0.95
@@ -12,6 +13,9 @@ export interface UiState {
   timeWindow: TimeWindow;
   isDrawerOpen: boolean;
   isSettingsOpen: boolean;
+  isMembersOpen: boolean;
+  activeWorkspace: string;
+  mobileIntelTab: MobileIntelTab;
 
   setThreshold: (val: number) => void;
   setShowBoxes: (show: boolean) => void;
@@ -24,6 +28,9 @@ export interface UiState {
   toggleDrawer: () => void;
   setSettingsOpen: (open: boolean) => void;
   toggleSettings: () => void;
+  setIsMembersOpen: (open: boolean) => void;
+  setActiveWorkspace: (ws: string) => void;
+  setMobileIntelTab: (tab: MobileIntelTab) => void;
   reset: () => void;
 }
 
@@ -37,6 +44,9 @@ const initialState = {
   timeWindow: '5m' as TimeWindow,
   isDrawerOpen: false,
   isSettingsOpen: false,
+  isMembersOpen: false,
+  activeWorkspace: 'Lobby-North',
+  mobileIntelTab: 'current' as MobileIntelTab,
 };
 
 export const useUiStore = create<UiState>((set) => ({
@@ -52,5 +62,8 @@ export const useUiStore = create<UiState>((set) => ({
   toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
   setSettingsOpen: (isSettingsOpen) => set({ isSettingsOpen }),
   toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
+  setIsMembersOpen: (isMembersOpen) => set({ isMembersOpen }),
+  setActiveWorkspace: (activeWorkspace) => set({ activeWorkspace }),
+  setMobileIntelTab: (mobileIntelTab) => set({ mobileIntelTab }),
   reset: () => set(initialState),
 }));

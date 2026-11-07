@@ -48,6 +48,10 @@ export function useKeyboardNav() {
             e.preventDefault();
             navigate('/live');
             return;
+          case 'o':
+            e.preventDefault();
+            navigate('/overview');
+            return;
           case 'm':
             e.preventDefault();
             navigate('/models');
@@ -55,6 +59,10 @@ export function useKeyboardNav() {
           case 'h':
             e.preventDefault();
             navigate('/history');
+            return;
+          case 'a':
+            e.preventDefault();
+            navigate('/analytics');
             return;
           default:
             break;
