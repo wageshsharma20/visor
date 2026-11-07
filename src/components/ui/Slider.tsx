@@ -17,21 +17,25 @@ export interface SliderProps {
   className?: string;
 }
 
-export const Slider: React.FC<SliderProps> = ({
-  variant = 'default',
-  surface = 'card',
-  min = 0,
-  max = 1,
-  step = 0.05,
-  value,
-  onChange,
-  label,
-  minLabel,
-  maxLabel,
-  formatValue = (v) => `${(v * 100).toFixed(0)}%`,
-  disabled = false,
-  className = '',
-}) => {
+export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
+  (
+    {
+      variant = 'default',
+      surface = 'card',
+      min = 0,
+      max = 1,
+      step = 0.05,
+      value,
+      onChange,
+      label,
+      minLabel,
+      maxLabel,
+      formatValue = (v) => `${(v * 100).toFixed(0)}%`,
+      disabled = false,
+      className = '',
+    },
+    ref
+  ) => {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
 
@@ -93,6 +97,7 @@ export const Slider: React.FC<SliderProps> = ({
   if (variant === 'compact') {
     return (
       <div
+        ref={ref}
         data-slider-compact-root
         className={`inline-flex items-center gap-2 select-none w-[164px] shrink-0 ${
           disabled ? 'opacity-40 pointer-events-none' : ''
@@ -152,7 +157,10 @@ export const Slider: React.FC<SliderProps> = ({
   }
 
   return (
-    <div className={`flex flex-col gap-1.5 w-full select-none ${disabled ? 'opacity-40' : ''} ${className}`}>
+    <div
+      ref={ref}
+      className={`flex flex-col gap-1.5 w-full select-none ${disabled ? 'opacity-40' : ''} ${className}`}
+    >
       {label && (
         <div className="flex items-center justify-between text-label">
           <span className="text-text-2">{label}</span>
@@ -249,4 +257,6 @@ export const Slider: React.FC<SliderProps> = ({
       </div>
     </div>
   );
-};
+});
+
+Slider.displayName = 'Slider';

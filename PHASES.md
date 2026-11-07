@@ -119,9 +119,16 @@ Read AGENTS.md (new "Simplicity rules"), docs/SPEC.md §2, §3, §7, §8 and doc
    - HUD: only "● LIVE · CAM_01" top-left (or PAUSED) and the time top-right. Remove the bottom-corner chips and the viewfinder corner marks.
    - Toolbar: 5 items (Start ▾ menu with Webcam / Demo scene, Pause, Boxes, threshold, Fullscreen). Remove the Webcam|Demo segment, Labels, Trails and Snapshot.
    - Side panel: two cards, "Selected object" (with the AI description inside it) and "Detections". Delete the separate AI Description card.
-5. Delete components, stores fields, shortcuts and tests that only served removed features. Keep PipelineDebug for now (Phase 4 removes it).
+5. Progressive disclosure per DESIGN.md §5.1:
+   - **Start state:** only the rail, the page title, the settings gear and one centered "Start monitoring" card ([Start webcam] + [Try demo scene], the latter wired to the synthetic source drawing into the viewport canvas).
+   - **Streaming:** the viewport, toolbar and status pill appear.
+   - **Detections:** the side panel slides in. The Selected object card renders only when something is selected.
+   - Remove every zero counter, empty placeholder and "no X connected" text.
+6. Hide PipelineDebug (and its source switcher) unless the URL has ?debug=1.
+7. Fix the console warning "Function components cannot be given refs" (use React.forwardRef on the component receiving the ref).
+8. Delete components, store fields, shortcuts and tests that only served removed features.
 
-Acceptance: audit/typecheck/lint/test/build pass; zero console warnings; screenshots of /live at 1440 and 390, /models and /history at 1440. Count and report: rail items (3), top-bar elements right side (2), toolbar items (5), side-panel cards (2). Commit "refactor: simplify app to three pages and a single status surface".
+Acceptance: audit/typecheck/lint/test/build pass; zero console warnings; screenshots of /live at 1440 and 390, /models and /history at 1440. Count and report the visible elements in each state. Start state: rail (logo + 3 items), title, gear, start card, and nothing else. Streaming state: + viewport, toolbar, status pill. Detections state: + side panel. Include screenshots of all three states at 1440 and the start state at 390. Commit "refactor: simplify app to three pages and a single status surface".
 ```
 
 ## Phase 4 — Camera viewport and detection overlay (the hero)

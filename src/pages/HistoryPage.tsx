@@ -106,9 +106,11 @@ export const HistoryPage: React.FC = () => {
           icon={<Clock className="w-3.5 h-3.5 text-text-2" />}
           statusDot={<StatusDot state="idle" />}
           action={
-            <span className="font-mono text-data text-text-3 px-1.5 py-0.5 rounded-chip bg-bg-3 border border-line-1">
-              0 total detections
-            </span>
+            totalRows > 0 ? (
+              <span className="font-mono text-data text-text-3 px-1.5 py-0.5 rounded-chip bg-bg-3 border border-line-1">
+                {totalRows} records
+              </span>
+            ) : undefined
           }
         />
 

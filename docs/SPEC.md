@@ -25,7 +25,7 @@ Icon rail order: Live Monitor, Model, History. Nothing else.
 
 ## 3. Top bar (56px)
 
-Left: the page title (`title` style). Right: **one** status pill and the settings gear. Nothing else.
+Left: the page title (`title` style). Right: **one** status pill and the settings gear. Nothing else. The pill is hidden while no source is running (DESIGN.md §5.1).
 
 The status pill summarizes the whole pipeline in one line, reading from `usePipelineStatus()`:
 - `Camera off`
@@ -204,7 +204,7 @@ src/
 
 ## 8. Side panel (right, 340px): two cards only
 
-1. **Selected object.** Empty state: "Select an object in the feed or the list." When selected:
+1. **Selected object.** Rendered only while something is selected; there's no empty state (DESIGN.md §5.1). When selected:
    - one header line: class + `#004` + status pill;
    - confidence as `metric`, with a thin pill bar;
    - one line of meta chips: first seen · time in view;

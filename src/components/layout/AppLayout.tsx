@@ -2,8 +2,10 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { TopBar } from './TopBar';
 import { IconRail } from './IconRail';
+import { SettingsDrawer } from '@/components/settings/SettingsDrawer';
 import { useKeyboardNav } from '@/lib/useKeyboardNav';
 import { useDetectionPipeline } from '@/lib/useDetectionPipeline';
+import { useUiStore } from '@/stores/uiStore';
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -14,6 +16,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   useDetectionPipeline();
   const location = useLocation();
   const isLivePage = location.pathname === '/live';
+  const { isSettingsOpen, setSettingsOpen } = useUiStore();
 
   return (
     <div className="flex flex-col h-[100dvh] w-full bg-bg-1 text-text-1 overflow-hidden select-none">
@@ -33,6 +36,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
+
+      {/* Slide-over Settings Drawer */}
+      <SettingsDrawer
+        open={isSettingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   );
 };

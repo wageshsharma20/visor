@@ -1,96 +1,101 @@
 import React from 'react';
-import { PipelineStrip } from '@/components/live/PipelineStrip';
+import { Camera, Sparkles, Video } from 'lucide-react';
 import { ViewportCard } from '@/components/live/ViewportCard';
 import { FloatingToolbar } from '@/components/live/FloatingToolbar';
-import { TimelineCard } from '@/components/live/TimelineCard';
-import { IntelPanel } from '@/components/intel/IntelPanel';
-import { SegmentedControl, Card, CardHeader, StatusDot } from '@/components/ui';
-import { useUiStore, MobileIntelTab } from '@/stores/uiStore';
-import { Crosshair, ListFilter, EyeOff } from 'lucide-react';
+import { IntelContent } from '@/components/intel/IntelContent';
+import { Card, Button } from '@/components/ui';
+import { useCameraStore } from '@/stores/cameraStore';
+import { useDetectionStore } from '@/stores/detectionStore';
+import { startDetectionPipeline } from '@/lib/useDetectionPipeline';
 
 export const LivePage: React.FC = () => {
-  const { mobileIntelTab, setMobileIntelTab } = useUiStore();
+  const {
+    status: cameraStatus,
+    mode: cameraMode,
+    startWebcamAction,
+    setMode,
+    setStatus,
+    setFps,
+    setLatency,
+  } = useCameraStore();
 
-  const mobileTabs: Array<{ label: string; value: MobileIntelTab }> = [
-    { label: 'Current', value: 'current' },
-    { label: 'Recent', value: 'recent' },
-    { label: 'Timeline', value: 'timeline' },
-  ];
+  const { tracks, visibleTracks, pipelineRunning } = useDetectionStore();
 
-  return (
-    <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 h-full overflow-hidden">
-      {/* Center Column: Pipeline Strip + Viewport + Floating Toolbar + Timeline */}
-      <div className="flex-1 min-w-0 flex flex-col gap-3 sm:gap-4 h-full overflow-y-auto sm:overflow-hidden pb-16 sm:pb-0">
-        {/* Row 1: Pipeline Strip (40px) */}
-        <PipelineStrip />
+  const isDemo = cameraMode === 'demo';
+  const isStreaming = cameraStatus === 'connected' || cameraStatus === 'requesting' || (isDemo && pipelineRunning);
+  const hasDetections = tracks.length > 0 || visibleTracks.length > 0;
 
-        {/* Row 2: Camera Viewport Card (Hero element, 1fr) */}
-        <ViewportCard />
+  const handleStartWebcam = async () => {
+    setMode('webcam');
+    await startWebcamAction();
+  };
 
-        {/* Row 3: Floating Toolbar (48px) */}
-        <FloatingToolbar />
+  const handleStartDemo = async () => {
+    setMode('demo');
+    setStatus('connected');
+    setFps(30);
+    setLatency(33);
+    await startDetectionPipeline();
+  };
 
-        {/* Desktop / Tablet Timeline (≥ 640px) */}
-        <div className="hidden sm:block">
-          <TimelineCard />
-        </div>
-
-        {/* Mobile Tabbed Views (< 640px): Segmented [Current · Recent · Timeline] */}
-        <div className="sm:hidden flex flex-col gap-3">
-          <div className="flex justify-center">
-            <SegmentedControl
-              value={mobileIntelTab}
-              onChange={(val) => setMobileIntelTab(val as MobileIntelTab)}
-              options={mobileTabs}
-            />
+  // STATE 1: Start State (No source running) per DESIGN.md §5.1
+  // Rail, page title, settings gear and one centered start card on dot-grid canvas.
+  if (!isStreaming) {
+    return (
+      <div className="flex-1 w-full h-full flex items-center justify-center p-4">
+        <Card className="max-w-[420px] w-full p-6 text-center flex flex-col items-center gap-4 bg-bg-2 border-line-1 rounded-card shadow-float select-none">
+          <div className="w-12 h-12 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-accent">
+            <Camera className="w-7 h-7 text-accent" />
           </div>
 
-          {mobileIntelTab === 'timeline' && <TimelineCard />}
+          <div className="space-y-1">
+            <h2 className="text-title text-text-1 font-semibold">Start monitoring</h2>
+            <p className="text-small text-text-2 leading-relaxed">
+              Use your webcam or a demo scene to see live detections.
+            </p>
+          </div>
 
-          {mobileIntelTab === 'current' && (
-            <Card className="flex flex-col">
-              <CardHeader
-                title="Current Detection"
-                icon={<Crosshair className="w-3.5 h-3.5 text-text-2" />}
-                statusDot={<StatusDot state="idle" />}
-              />
-              <div className="p-3">
-                <div className="flex flex-col items-center justify-center py-6 text-center bg-bg-3/50 border border-line-1 rounded-control">
-                  <div className="w-8 h-8 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-text-3 mb-2">
-                    <EyeOff className="w-4 h-4" />
-                  </div>
-                  <div className="text-body-strong text-text-1 mb-0.5">No Object Selected</div>
-                  <div className="text-small text-text-3 max-w-[200px]">
-                    Select an object in the feed or the list.
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full pt-2">
+            <Button
+              variant="primary"
+              size={36}
+              icon={<Video className="w-4 h-4" />}
+              className="w-full flex-1 justify-center"
+              onClick={handleStartWebcam}
+            >
+              Start webcam
+            </Button>
+            <Button
+              variant="secondary"
+              size={36}
+              icon={<Sparkles className="w-4 h-4 text-accent" />}
+              className="w-full flex-1 justify-center"
+              onClick={handleStartDemo}
+            >
+              Try demo scene
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
-          {mobileIntelTab === 'recent' && (
-            <Card className="flex flex-col min-h-[180px]">
-              <CardHeader
-                title="Recent Detections"
-                icon={<ListFilter className="w-3.5 h-3.5 text-text-2" />}
-                statusDot={
-                  <span className="font-mono text-data text-text-3 px-1.5 py-0.5 rounded-chip bg-bg-3 border border-line-1">
-                    0
-                  </span>
-                }
-              />
-              <div className="p-4 flex flex-col items-center justify-center text-center">
-                <div className="text-small text-text-3">
-                  No objects detected in the current session.
-                </div>
-              </div>
-            </Card>
-          )}
-        </div>
+  // STATE 2: Streaming, nothing detected yet -> Viewport + Toolbar fill full width
+  // STATE 3: Detections arriving -> Side panel slides in from the right (240ms)
+  return (
+    <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 h-full overflow-hidden select-none">
+      {/* Main Column: Viewport + Floating Toolbar */}
+      <div className="flex-1 min-w-0 flex flex-col gap-3 h-full overflow-hidden">
+        <ViewportCard />
+        <FloatingToolbar />
       </div>
 
-      {/* Right Column (Desktop: fixed width; Tablet: drawer) */}
-      <IntelPanel />
+      {/* Side Panel: Slides in only when detections arrive (State 3) */}
+      {hasDetections && (
+        <aside className="w-full lg:w-intel-sm xl:w-intel shrink-0 h-auto lg:h-full overflow-y-auto no-scrollbar transition-all duration-slow">
+          <IntelContent />
+        </aside>
+      )}
     </div>
   );
 };

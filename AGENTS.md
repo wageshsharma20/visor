@@ -26,6 +26,8 @@ VISOR is a frontend-only command center for a real-time visual detection model: 
 - Each piece of status (camera, source, model) is shown in exactly ONE place per screen. Don't repeat it in strips, chips or HUD corners.
 - Live Monitor has only these parts: the viewport (with 2 HUD chips), a 5-item toolbar and a 2-card side panel. Nothing else.
 - Prefer fewer words, fewer chips and fewer borders. If removing something loses no information, remove it.
+- **Progressive disclosure:** never show an empty panel, a zero counter, or a control that can't do anything yet. A part appears only when it has something to show or do (see DESIGN.md §5.1).
+- Developer tools (PipelineDebug, source switcher) are only visible with `?debug=1` in the URL.
 
 ## Visual rules (summary; full detail in DESIGN.md)
 - "Graphite Node" (DESIGN.md v2): near-black dot-grid canvas, floating `--bg-2` cards with 1px `--line-1` borders, small titled card headers with a status dot, green wires that show real data flow. Use the named radius tokens only (chip 6 / control 8 / card 12 / panel 14 / full). No shadows on regular cards.

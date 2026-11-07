@@ -8,6 +8,10 @@ import {
 } from '@/lib/useDetectionPipeline';
 
 export const PipelineDebug: React.FC = () => {
+  const isDebug =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('debug') === '1';
+
   const {
     pipelineRunning,
     fps,
@@ -25,6 +29,10 @@ export const PipelineDebug: React.FC = () => {
   } = useDetectionStore();
 
   const [loading, setLoading] = useState(false);
+
+  if (!isDebug) {
+    return null;
+  }
 
   const togglePipeline = async () => {
     setLoading(true);

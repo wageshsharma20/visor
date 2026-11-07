@@ -132,13 +132,13 @@ describe('Zustand Stores & Pipeline Status', () => {
       expect(state.showLabels).toBe(true);
       expect(state.showTrails).toBe(false);
       expect(state.timeWindow).toBe('5m');
-      expect(state.activeWorkspace).toBe('Lobby-North');
+      expect(state.isSettingsOpen).toBe(false);
       expect(state.isDrawerOpen).toBe(false);
     });
 
-    it('toggles drawer and updates settings', () => {
-      useUiStore.getState().toggleDrawer();
-      expect(useUiStore.getState().isDrawerOpen).toBe(true);
+    it('toggles settings drawer and updates settings', () => {
+      useUiStore.getState().toggleSettings();
+      expect(useUiStore.getState().isSettingsOpen).toBe(true);
 
       useUiStore.getState().setThreshold(0.75);
       expect(useUiStore.getState().threshold).toBe(0.75);

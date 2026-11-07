@@ -17,14 +17,18 @@ export interface PillProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
 }
 
-export const Pill: React.FC<PillProps> = ({
-  variant = 'neutral',
-  dot = false,
-  pulse = false,
-  children,
-  className = '',
-  ...props
-}) => {
+export const Pill = React.forwardRef<HTMLSpanElement, PillProps>(
+  (
+    {
+      variant = 'neutral',
+      dot = false,
+      pulse = false,
+      children,
+      className = '',
+      ...props
+    },
+    ref
+  ) => {
   const variantStyles: Record<PillVariant, { bg: string; text: string; border: string; dotColor: string }> = {
     visible: {
       bg: 'bg-accent-dim',
@@ -80,6 +84,7 @@ export const Pill: React.FC<PillProps> = ({
 
   return (
     <span
+      ref={ref}
       className={`inline-flex items-center gap-1.5 h-5 px-2 font-sans text-small uppercase font-medium tracking-wider rounded-full border ${current.bg} ${current.text} ${current.border} ${className}`}
       {...props}
     >
@@ -93,4 +98,6 @@ export const Pill: React.FC<PillProps> = ({
       <span>{children}</span>
     </span>
   );
-};
+});
+
+Pill.displayName = 'Pill';

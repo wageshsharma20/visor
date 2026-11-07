@@ -161,6 +161,21 @@ Wires are the signature element. They must always represent real data flow.
   - The right column has two cards; only the Detections card scrolls.
 - **No** pipeline strip, timeline, inline detail card or extra chips on Live.
 
+### 5.1 Progressive disclosure (what shows when)
+
+The Live screen has three states. Elements fade or slide in with 200ms transitions, and nothing appears before it's needed.
+
+| State | What's on screen |
+|---|---|
+| **1. Start** (no source) | Icon rail · page title · one centered start card on the dot-grid canvas. The card is ~420px wide: a 36px camera icon, the title "Start monitoring", one line ("Use your webcam or a demo scene to see live detections."), and two buttons, [Start webcam] (white) and [Try demo scene] (secondary). **No** viewport frame, toolbar, side panel, status pill, timestamp or empty states. |
+| **2. Streaming, nothing detected yet** | The viewport card fills the whole content width, with the LIVE chip and time. The toolbar appears under it. The top-bar status pill appears. **Still no side panel.** |
+| **3. Detections arriving** | The side panel slides in from the right (240ms) with the Detections card. The "Selected object" card appears only once the user selects something; before that, the Detections card takes the full panel height. |
+
+Other rules:
+- Stopping the source returns to state 1, unless there's history, in which case the side panel stays with the past detections, dimmed.
+- Zero counters, "0 events" chips, "No object selected" placeholders and "No description model connected" text are never shown. If there's nothing to say, render nothing.
+- The settings gear is always visible in the top bar. Everything else in the top bar (the status pill) appears only from state 2.
+
 ### Responsive
 
 - **1024–1279px:** the side panel is 300px.

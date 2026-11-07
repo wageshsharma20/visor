@@ -4,26 +4,40 @@ import {
   Pause,
   Square,
   SquareDashed,
-  Tag,
-  Footprints,
-  Camera,
   Maximize2,
+  Camera,
+  Sparkles,
+  ChevronDown,
+  Square as StopIcon,
 } from 'lucide-react';
 import {
   IconButton,
   Slider,
   Tooltip,
+  Menu,
+  MenuItem,
+  Button,
 } from '@/components/ui';
 import { useCameraStore } from '@/stores/cameraStore';
 import { useUiStore } from '@/stores/uiStore';
+import { useDetectionStore } from '@/stores/detectionStore';
+import {
+  startDetectionPipeline,
+  stopDetectionPipeline,
+} from '@/lib/useDetectionPipeline';
 
 export const FloatingToolbar: React.FC = () => {
   const {
     status: cameraStatus,
+    mode: cameraMode,
     paused,
     setPaused,
     startWebcamAction,
     stopWebcamAction,
+    setMode,
+    setStatus,
+    setFps,
+    setLatency,
   } = useCameraStore();
 
   const {
@@ -31,20 +45,30 @@ export const FloatingToolbar: React.FC = () => {
     setThreshold,
     showBoxes,
     setShowBoxes,
-    showLabels,
-    setShowLabels,
-    showTrails,
-    setShowTrails,
   } = useUiStore();
 
-  const isLive = cameraStatus === 'connected';
+  const pipelineRunning = useDetectionStore((s) => s.pipelineRunning);
 
-  const handleStartStop = () => {
-    if (isLive) {
-      stopWebcamAction();
-    } else {
-      startWebcamAction();
-    }
+  const isLive = cameraStatus === 'connected' || (cameraMode === 'demo' && pipelineRunning);
+
+  const handleStartWebcam = async () => {
+    stopDetectionPipeline();
+    setMode('webcam');
+    await startWebcamAction();
+  };
+
+  const handleStartDemo = async () => {
+    stopWebcamAction();
+    setMode('demo');
+    setStatus('connected');
+    setFps(30);
+    setLatency(33);
+    await startDetectionPipeline();
+  };
+
+  const handleStop = () => {
+    stopDetectionPipeline();
+    stopWebcamAction();
   };
 
   const handlePause = () => {
@@ -56,146 +80,113 @@ export const FloatingToolbar: React.FC = () => {
     window.dispatchEvent(new CustomEvent('visor:toggle-fullscreen'));
   };
 
-  const handleSnapshot = () => {
-    const video = document.querySelector('video');
-    if (!video || video.videoWidth === 0) return;
-
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0);
-        const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        const now = new Date()
-          .toISOString()
-          .replace(/[-:]/g, '')
-          .replace('T', '-')
-          .split('.')[0];
-        link.download = `visor-snapshot-${now}.png`;
-        link.href = dataUrl;
-        link.click();
-      }
-    } catch {
-      // In case of security/tainted canvas issues
-    }
-  };
+  const sourceMenuItems: MenuItem[] = [
+    {
+      id: 'webcam',
+      label: 'Webcam Stream',
+      icon: <Camera className="w-3.5 h-3.5 text-text-2" />,
+      onClick: handleStartWebcam,
+    },
+    {
+      id: 'demo',
+      label: 'Demo Scene',
+      icon: <Sparkles className="w-3.5 h-3.5 text-accent" />,
+      onClick: handleStartDemo,
+    },
+    ...(isLive
+      ? [
+          {
+            id: 'stop',
+            label: 'Stop Stream',
+            icon: <StopIcon className="w-3.5 h-3.5 text-red" />,
+            danger: true,
+            onClick: handleStop,
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <div className="h-toolbar flex items-center justify-center select-none shrink-0 w-full overflow-hidden">
-      <div className="flex items-center gap-2.5 px-3 py-1 bg-bg-2 border border-line-2 rounded-card shadow-float max-w-full overflow-x-auto no-scrollbar">
-        {/* GROUP 1: Start/Stop & Pause */}
-        <div className="flex items-center gap-1 shrink-0">
-          <IconButton
-            icon={isLive ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            label={isLive ? 'Stop feed' : 'Start webcam'}
-            size={32}
-            onClick={handleStartStop}
-            className={isLive ? 'text-red hover:bg-bg-3' : 'text-accent hover:bg-bg-3'}
-          />
-
-          <IconButton
-            icon={paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-            label={paused ? 'Resume feed (Space)' : 'Pause feed (Space)'}
-            size={32}
-            disabled={!isLive}
-            onClick={handlePause}
-            className={paused ? 'bg-bg-4 text-amber' : ''}
-          />
-        </div>
-
-        {/* Divider */}
-        <div className="w-[1px] h-4 bg-line-2 shrink-0" />
-
-        {/* GROUP 2: Overlays Toggles (Boxes, Labels, Trails) */}
-        <div className="flex items-center gap-1 shrink-0">
-          <Tooltip content="Toggle Bounding Boxes (B)">
-            <button
-              type="button"
-              onClick={() => setShowBoxes(!showBoxes)}
-              aria-label="Toggle Bounding Boxes"
-              className={`w-8 h-8 rounded-control flex items-center justify-center transition-colors duration-fast focus-visible:outline-none focus-visible:shadow-focus ${
-                showBoxes
-                  ? 'bg-steel text-on-white'
-                  : 'text-icon-dim hover:text-text-1 hover:bg-bg-3'
-              }`}
-            >
-              <SquareDashed className="w-4 h-4" />
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Toggle Labels (L)">
-            <button
-              type="button"
-              onClick={() => setShowLabels(!showLabels)}
-              aria-label="Toggle Labels"
-              className={`w-8 h-8 rounded-control flex items-center justify-center transition-colors duration-fast focus-visible:outline-none focus-visible:shadow-focus ${
-                showLabels
-                  ? 'bg-steel text-on-white'
-                  : 'text-icon-dim hover:text-text-1 hover:bg-bg-3'
-              }`}
-            >
-              <Tag className="w-4 h-4" />
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Toggle Motion Trails (T)">
-            <button
-              type="button"
-              onClick={() => setShowTrails(!showTrails)}
-              aria-label="Toggle Motion Trails"
-              className={`w-8 h-8 rounded-control flex items-center justify-center transition-colors duration-fast focus-visible:outline-none focus-visible:shadow-focus ${
-                showTrails
-                  ? 'bg-steel text-on-white'
-                  : 'text-icon-dim hover:text-text-1 hover:bg-bg-3'
-              }`}
-            >
-              <Footprints className="w-4 h-4" />
-            </button>
-          </Tooltip>
-        </div>
-
-        {/* Divider */}
-        <div className="w-[1px] h-4 bg-line-2 shrink-0" />
-
-        {/* GROUP 3: Compact Threshold Slider (track 120px + 8px gap + 36px readout = 164px) */}
-        <div className="flex items-center gap-2 shrink-0">
-          <Tooltip content={`Confidence threshold: ${(threshold * 100).toFixed(0)}%`}>
-            <Slider
-              variant="compact"
-              surface="card"
-              min={0.3}
-              max={0.95}
-              step={0.05}
-              value={threshold}
-              onChange={setThreshold}
-            />
-          </Tooltip>
-        </div>
-
-        {/* Divider */}
-        <div className="w-[1px] h-4 bg-line-2 shrink-0" />
-
-        {/* GROUP 4: Snapshot (hidden until live) & Fullscreen */}
-        <div className="flex items-center gap-1 shrink-0">
-          {isLive && (
-            <IconButton
-              icon={<Camera className="w-3.5 h-3.5" />}
-              label="Save Snapshot PNG"
+    <div
+      aria-label="Viewport Controls"
+      className="h-toolbar bg-bg-2 border border-line-1 rounded-panel px-3 flex items-center justify-between gap-3 shadow-none select-none shrink-0"
+    >
+      {/* ITEM 1: Start ▾ Menu */}
+      <div className="flex items-center shrink-0">
+        <Menu
+          align="left"
+          items={sourceMenuItems}
+          trigger={
+            <Button
+              variant={isLive ? 'secondary' : 'primary'}
               size={32}
-              onClick={handleSnapshot}
-            />
-          )}
+              className="flex items-center gap-1.5 font-mono text-small"
+            >
+              {isLive ? (
+                <>
+                  <span className={`w-1.5 h-1.5 rounded-full ${paused ? 'bg-amber' : 'bg-accent-bright shadow-glow-accent'}`} />
+                  <span>{cameraMode === 'webcam' ? 'Webcam' : 'Demo'}</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3 h-3 fill-current" />
+                  <span>Start</span>
+                </>
+              )}
+              <ChevronDown className="w-3 h-3 text-text-3" />
+            </Button>
+          }
+        />
+      </div>
 
-          <IconButton
-            icon={<Maximize2 className="w-3.5 h-3.5" />}
-            label="Toggle Fullscreen (F)"
-            size={32}
-            onClick={handleFullscreen}
+      {/* ITEM 2: Pause Toggle */}
+      <div className="flex items-center shrink-0">
+        <IconButton
+          icon={paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+          label={paused ? 'Resume Feed (Space)' : 'Pause Feed (Space)'}
+          size={32}
+          active={paused}
+          activeVariant="steel"
+          disabled={!isLive}
+          onClick={handlePause}
+        />
+      </div>
+
+      {/* ITEM 3: Boxes Toggle */}
+      <div className="flex items-center shrink-0">
+        <IconButton
+          icon={showBoxes ? <Square className="w-4 h-4" /> : <SquareDashed className="w-4 h-4" />}
+          label="Toggle Bounding Boxes (B)"
+          size={32}
+          active={showBoxes}
+          activeVariant="accent"
+          onClick={() => setShowBoxes(!showBoxes)}
+        />
+      </div>
+
+      {/* ITEM 4: Compact Threshold Slider */}
+      <div className="flex items-center shrink-0">
+        <Tooltip content={`Confidence threshold: ${(threshold * 100).toFixed(0)}%`}>
+          <Slider
+            variant="compact"
+            surface="card"
+            min={0.3}
+            max={0.95}
+            step={0.05}
+            value={threshold}
+            onChange={setThreshold}
           />
-        </div>
+        </Tooltip>
+      </div>
+
+      {/* ITEM 5: Fullscreen Toggle */}
+      <div className="flex items-center shrink-0">
+        <IconButton
+          icon={<Maximize2 className="w-4 h-4" />}
+          label="Toggle Fullscreen (F)"
+          size={32}
+          onClick={handleFullscreen}
+        />
       </div>
     </div>
   );
