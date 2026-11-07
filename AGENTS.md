@@ -21,6 +21,12 @@ VISOR is a frontend-only command center for a real-time visual detection model: 
 - Every list in memory is capped (ring buffers). Nothing grows forever.
 - Anything simulated is labeled as simulated in the UI. Never display "AI ACTIVE", "inference running" or similar unless a real model is producing the frames.
 
+## Simplicity rules (the user's top priority)
+- Three pages only: Live, Model, History. Settings is a drawer. Never add Overview/Analytics pages, workspace switchers, avatars or decorative status dots.
+- Each piece of status (camera, source, model) is shown in exactly ONE place per screen. Don't repeat it in strips, chips or HUD corners.
+- Live Monitor has only these parts: the viewport (with 2 HUD chips), a 5-item toolbar and a 2-card side panel. Nothing else.
+- Prefer fewer words, fewer chips and fewer borders. If removing something loses no information, remove it.
+
 ## Visual rules (summary; full detail in DESIGN.md)
 - "Graphite Node" (DESIGN.md v2): near-black dot-grid canvas, floating `--bg-2` cards with 1px `--line-1` borders, small titled card headers with a status dot, green wires that show real data flow. Use the named radius tokens only (chip 6 / control 8 / card 12 / panel 14 / full). No shadows on regular cards.
 - One accent: signal green (`accent`, `accent-bright`, `accent-dim`). Amber means attention or warning. Red means error. `steel` is only for the active toolbar tool and the vehicle class. Primary buttons, active segments and slider fills are the white pill (`fill-white`). No cyan, blue or purple.

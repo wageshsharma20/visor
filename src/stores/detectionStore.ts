@@ -5,6 +5,8 @@ import {
   Track,
 } from '@/types/detection';
 
+export type ActiveSourceType = 'synthetic' | 'recorded' | 'websocket';
+
 export interface DetectionState {
   tracks: Track[];
   visibleTracks: Track[];
@@ -14,12 +16,20 @@ export interface DetectionState {
   totalFrames: number;
   lastFrameTs: number;
   sourceStatus: SourceStatus;
-  activeSourceId: string | null;
+  activeSourceId: string;
+  activeSourceType: ActiveSourceType;
+  websocketUrl: string;
+  resetOnSwitch: boolean;
   pipelineRunning: boolean;
 
   setPipelineRunning: (running: boolean) => void;
   setSourceStatus: (status: SourceStatus) => void;
-  setActiveSourceId: (id: string | null) => void;
+  setActiveSourceType: (
+    type: ActiveSourceType,
+    options?: { resetOnSwitch?: boolean }
+  ) => void;
+  setWebsocketUrl: (url: string) => void;
+  setResetOnSwitch: (reset: boolean) => void;
   syncFromTracker: (payload: {
     tracks: Track[];
     visibleTracks: Track[];
@@ -41,7 +51,10 @@ const initialState = {
   totalFrames: 0,
   lastFrameTs: 0,
   sourceStatus: { state: 'idle' as const },
-  activeSourceId: null as string | null,
+  activeSourceId: 'simulated-synthetic',
+  activeSourceType: 'synthetic' as ActiveSourceType,
+  websocketUrl: 'wss://localhost:8765',
+  resetOnSwitch: true,
   pipelineRunning: false,
 };
 
@@ -50,7 +63,22 @@ export const useDetectionStore = create<DetectionState>((set) => ({
 
   setPipelineRunning: (pipelineRunning) => set({ pipelineRunning }),
   setSourceStatus: (sourceStatus) => set({ sourceStatus }),
-  setActiveSourceId: (activeSourceId) => set({ activeSourceId }),
+  setActiveSourceType: (activeSourceType, options) =>
+    set((state) => ({
+      activeSourceType,
+      activeSourceId:
+        activeSourceType === 'synthetic'
+          ? 'simulated-synthetic'
+          : activeSourceType === 'recorded'
+          ? 'demo-recorded'
+          : 'remote-websocket',
+      resetOnSwitch:
+        options?.resetOnSwitch !== undefined
+          ? options.resetOnSwitch
+          : state.resetOnSwitch,
+    })),
+  setWebsocketUrl: (websocketUrl) => set({ websocketUrl }),
+  setResetOnSwitch: (resetOnSwitch) => set({ resetOnSwitch }),
 
   syncFromTracker: ({
     tracks,

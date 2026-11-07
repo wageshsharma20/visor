@@ -1,5 +1,7 @@
 # DESIGN.md — VISOR design system (v2, "Graphite Node")
 
+**Simplicity first.** Every screen shows one thing well. Each piece of status appears in exactly one place. If a control or chip repeats information that's already visible, remove it. When unsure, leave it out.
+
 **Direction.** This is a near-black AI workbench. Floating graphite cards sit on a faint dot-grid canvas, there is one signal-green accent, small precise type, and green node "wires" show how data flows. The look comes from a node-based AI pipeline editor: a thin icon rail, small titled cards with a green status dot, dark select fields, white pill sliders, a floating bottom toolbar, and bezier wires between nodes.
 
 **Why this fits VISOR:** a detection system *is* a pipeline (Camera → Model → Tracker → Outputs). The node-and-wire language shows the real pipeline state. It is never decoration. The camera feed is still the hero, the largest and brightest element on screen.
@@ -125,194 +127,116 @@ Wires are the signature element. They must always represent real data flow.
   - *Error:* the wire is dashed `--red` at 60%.
 - **Hub node:** a 36×36 `--bg-2` square, `rounded-control`, 1px `--line-2` border, with a 16px `Zap` icon in `--text-1` at the center (from the reference). This represents the model / inference step.
 - **Where wires appear:**
-  1. The **pipeline strip** on Live Monitor (§6.1).
-  2. The **Model Management** node canvas (§9).
-  3. The **selection leader** from the selected box to the inline detail card.
+  - the **Model page** node canvas (§9) only.
 
-  Do not draw wires anywhere else.
+  Do not draw wires anywhere else, including Live Monitor.
 
 ## 5. Layout
 
 ### Desktop (≥ 1280px)
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ ⚡ │ Lobby-North · Live Monitor ☁        [◐][↗] (avatars +2) [● SIMULATED] [⚙]│  56px top bar
-├────┼─────────────────────────────────────────────────────────────────────────┤
-│ ▢  │ [CAM_01 ●]───●──[⚡ yolov8n]──●───[Tracker · 14 obj]                     │  pipeline strip 40px
-│ ■  │ ┌───────────────────────────────────────────────┐  ┌──────────────────┐│
-│ ▢  │ │                                               │  │ ◎ Current Det. ● ││
-│ ▢  │ │        CAMERA VIEWPORT CARD (radius 14)       │  ├──────────────────┤│
-│ ▢  │ │        video + overlay + HUD                  │  │ ✦ AI Description ││
-│ ▢  │ │                                               │  ├──────────────────┤│
-│    │ └───────────────────────────────────────────────┘  │ ≡ Recent Detect. ││
-│    │     [▶][⏸] │ [Webcam|Demo] │ [▢][Aa][〰] │ ─○── │ [⤢]                 ││
-│ ↩  │ ┌───────────────────────────────────────────────┐  │   (scrolls)      ││
-│    │ │ ⏱ Detection Timeline                        ● │  │                  ││
-│    │ └───────────────────────────────────────────────┘  └──────────────────┘│
-└────┴─────────────────────────────────────────────────────────────────────────┘
- 52px rail                    dot-grid canvas, 20px padding, 16px gaps     360px
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ⚡ │ Live monitor                              [● Webcam · no model] [⚙] │  56px top bar
+├────┼─────────────────────────────────────────────────────────────────────┤
+│ ■  │ ┌───────────────────────────────────────────────┐ ┌───────────────┐ │
+│ ▢  │ │ ● LIVE · CAM_01                     13:42:08  │ │ Selected      │ │
+│ ▢  │ │                                               │ │ object        │ │
+│    │ │                                               │ │ (+ AI note)   │ │
+│    │ │        CAMERA VIEWPORT (as big as possible)   │ ├───────────────┤ │
+│    │ │                                               │ │ Detections    │ │
+│    │ │                                               │ │ list          │ │
+│    │ └───────────────────────────────────────────────┘ │ (scrolls)     │ │
+│    │       [▶ Start ▾] [⏸] [▢ Boxes] ──○── 50% [⤢]     │               │ │
+│    │                                                   └───────────────┘ │
+└────┴─────────────────────────────────────────────────────────────────────┘
+ 52px rail (3 items)     dot-grid canvas, 20px padding, 16px gaps     340px
 ```
 
-**Top bar (56px).** `--bg-1` with a 1px `--line-1` bottom edge.
-- Left: the page title in `title` style with a 14px `Cloud` icon in `--text-3`.
-- Right: a grouped icon cluster (one `--bg-2` capsule, 1px border, 32px icon buttons) · avatar stack (24px circles with a 2px `--bg-1` ring and a "+2" chip; static demo members, opens a "Workspace members" popover) · source chip (`SIMULATED` amber / `WEBCAM` / `DEMO`) · model chip with status dot · settings.
-
-**Icon rail (52px).** `--bg-1` with a 1px `--line-1` right edge.
-- The logo mark is at the top (white, 20px).
-- Nav items are 32×32 `rounded-control` buttons with 16px icons in `--icon-dim`.
-- **Active:** `--accent` fill, `--on-accent` icon, `--glow-accent` (the reference's green square).
-- Exit sits at the bottom. Tooltips appear on the right. There is no expanded state.
-
-**Content area.** `bg-canvas` with 20px padding. Grid is `grid-template-columns: 1fr 360px; gap: 16px`.
-- Center column rows: `40px pipeline strip | 1fr viewport | 48px floating toolbar | 168px timeline card`.
-- The right column is a stack of cards. Only Recent Detections scrolls.
-- Live Monitor is exactly `100dvh`. Other pages scroll inside the canvas.
+- **Top bar:** page title on the left; the single status pill and the settings gear on the right (SPEC §3).
+- **Icon rail:** logo plus 3 items (Live, Model, History). The active item is a green square.
+- **Content:**
+  - Grid is `1fr 340px`, gap 16px.
+  - Center column: `1fr` viewport, then a 48px toolbar row.
+  - The right column has two cards; only the Detections card scrolls.
+- **No** pipeline strip, timeline, inline detail card or extra chips on Live.
 
 ### Responsive
 
-- **1024–1279px:** the right column is 320px and the pipeline strip collapses to icons + dots.
-- **640–1023px:** the right column becomes a right drawer opened from a top-bar button showing the live track count.
+- **1024–1279px:** the side panel is 300px.
+- **640–1023px:** the side panel becomes a right drawer, opened by a "Detections (n)" button in the top bar.
 - **< 640px:**
-  - The rail becomes a bottom floating nav (`rounded-card`, centered, inset 12px from the bottom).
-  - Content is single column: pipeline strip (icons only) → viewport → floating toolbar (scrolls horizontally inside its capsule) → segmented [Current · Recent · Timeline] → selected card.
-  - All tap targets are at least 40px.
-- Horizontal page overflow is a bug at every width.
+  - The rail becomes a bottom nav with 3 items.
+  - The page stacks: viewport → toolbar → Selected object card → Detections card.
+- No horizontal overflow at any width.
 
 ## 6. Live Monitor components
 
-### 6.1 Pipeline strip
-
-The strip sits on the canvas with no card around it.
-- **Node chips:** 32px tall, `--bg-2`, 1px border, `rounded-control`, holding icon + `data` text + status dot. The three chips are:
-  1. `CAM_01 · 1920×1080 ●`
-  2. the ⚡ hub showing the model name, e.g. `yolov8n` or `No model`
-  3. `Tracker · 14 objects`
-- Chips are joined by short wires (§4) whose state follows the real pipeline:
-  - camera off → idle wires,
-  - streaming → pulses,
-  - model missing → the second wire is idle and the model chip is dashed.
-- Clicking the model chip opens `/models`.
-
-### 6.2 Camera viewport card
+### 6.1 Camera viewport card
 
 - `--bg-0`, 1px `--line-1` border, `rounded-panel`, `overflow: hidden`. The video is letterboxed inside it.
-- A very soft inner vignette is the only effect on the video.
+- There's no vignette and there are no viewfinder corners.
 
-### 6.3 HUD
+### 6.2 HUD: two chips only
 
-HUD text uses the `hud` style on `--hud-chip` chips, `rounded-chip`, 3px 7px padding, inset 12px from the content rect.
-- **Top-left:** `● REC · CAM_01`.
-- **Top-right:** time with milliseconds, updated via rAF writing to a ref (no per-frame React render).
-- **Bottom-left:** `1920×1080 · 30.0 FPS · 42 MS`.
-- **Bottom-right:** `MODEL · yolov8n · 14 OBJ`, `NO MODEL`, or amber `SIMULATED · DEMO SCENE`.
-- **Viewfinder corners:** four 16px L marks in `--text-1` at 25%, 1.5px, round caps. They are static.
+- **Top-left:** `● LIVE · CAM_01` (red dot) while streaming, or `PAUSED` in amber.
+- **Top-right:** the time (HH:MM:SS), updated via rAF writing to a ref.
+- Nothing in the bottom corners. Resolution, fps and model details live in the top-bar pill's popover.
+- Chips use the `hud` style on `--hud-chip`, `rounded-chip`, inset 12px.
 
-### 6.4 Bounding boxes
+### 6.3 Bounding boxes
 
-These are the most important visual in the product.
+- **Default:** 1.5px class-color rectangle at 70% opacity, `rx=3`, `vector-effect: non-scaling-stroke`. No corner brackets.
+- **Label chip:** attached above the top-left corner, `hud` style, class-color fill. Shows only `PERSON 98%`; the ID appears only when the box is hovered or selected. It flips inside near the top edge, and labels never overlap.
+- **Hover:** the rectangle goes to 100%.
+- **Selected:** 2px at 100%, a soft glow, and other boxes dim to 40%. No crosshair and no leader line.
+- **Lost track:** dashed `--text-3` rectangle that fades out after 5s.
+- **Flagged:** amber.
+- **Motion:** boxes interpolate between frames so they glide. Trails aren't drawn.
 
-- **Default:**
-  - 1.5px class-color rectangle at 40% opacity with `rx=3`, plus 12px corner brackets at 100% opacity, 2px, round caps.
-  - Use `vector-effect: non-scaling-stroke`.
-- **Label chip:**
-  - Attached above the top-left corner. `rounded-chip`, class-color fill at 92%, `--on-accent` text, `hud` style, e.g. `PERSON  #004  98.4%`.
-  - It flips inside the box near the top edge (within 24px).
-  - It must never overlap another chip; offset it down instead.
-- **Hover:** the rectangle goes to 75%, with a 120ms transition.
-- **Selected:**
-  - The rectangle goes to 100% and the brackets become 2.5px with 16px arms.
-  - The box gets a glow (an SVG blur filter) and a 6px center crosshair.
-  - All other boxes dim to 40%.
-  - A **wire-style bezier leader** with a port dot at each end runs to the inline detail card.
-- **New track:** brackets start at scale 1.12 / opacity 0 and animate to 1 / 1 over 220ms. This happens once.
-- **Lost track** (not seen for >1s): dashed rectangle in `--text-3`, label reads `#004 LOST`, and it fades over 600ms at 5s.
-- **Flagged:** amber box with amber glow, and a 10px `TriangleAlert` glyph in the label.
-- **Trail** (toggle): the last 30 centroids as a 1.5px polyline, with opacity going 0 → 0.5 along its length.
-- **Motion:** boxes interpolate between frames so they glide.
+### 6.4 Viewport states
 
-### 6.5 Inline detail card (a small node)
-
-A 240px card in the §3 style (`--bg-2` at 96%, `--shadow-float`) anchored beside the box and clamped inside the content rect.
-- **Header:** class icon + "Person #004" + status dot.
-- **Body:**
-  - `metric` confidence with a pill progress bar under it,
-  - a meta-chip row (`12.3s in view`, `peak 99.1%`),
-  - 2 attribute fields in the label-over-value pattern,
-  - a "View details →" link in `--accent`.
-
-### 6.6 Viewport states
-
-Each state is centered in the card: a 36px hub-style icon square, `body-strong` title, `small` text in `--text-2`, and one or two buttons. It is never a blank black box.
+Each state is centered in the card: a 36px icon square, a `body-strong` title, one `small` line, and one or two buttons.
 
 | State | Title | Supporting text / actions |
 |---|---|---|
-| Idle | "Camera offline" | [Start webcam] (white primary), [Run demo scene] (secondary) |
+| Idle | "Camera off" | [Start webcam] (white primary), [Run demo scene] (secondary) |
 | Requesting | "Waiting for camera permission…" | — |
-| Denied | "Camera blocked" | Steps to re-enable it, plus [Run demo scene instead] |
+| Denied | "Camera blocked" | One line on re-enabling it, plus [Try again] [Run demo scene] |
 | No camera / In use | — | Specific copy for each case |
-| Paused | — | The video freezes and the HUD shows an amber `PAUSED` chip |
-| Webcam, no model | — | The video plays. A bottom-center chip reads "No detection model connected · Connect model →". The pipeline's model chip is dashed |
+| Webcam, no model | — | The video plays. A small bottom-center chip reads "No model connected · Connect →" |
 
-### 6.7 Floating toolbar (viewport controls)
+### 6.5 Toolbar (5 items)
 
-This is the reference's bottom toolbar. It's a centered capsule in its own 48px row under the viewport: `--bg-2`, 1px `--line-2` border, `rounded-card`, 4px padding, `--shadow-float`.
-- **Items:** 32×32 `rounded-control` icon buttons with 16px icons in `--icon-dim`. Hover goes to `--text-1` on `--bg-3`. On/active is an `--on-white` icon on a `--steel` fill (the reference's pale active tool).
-- **Groups** are separated by 1px × 16px `--line-2` dividers:
-  1. Start/Stop · Pause
-  2. Webcam | Demo segmented control
-  3. Boxes · Labels · Trails toggles
-  4. Threshold pill slider (120px)
-  5. Snapshot · Fullscreen
-- Every item has a tooltip with its shortcut.
+A centered capsule under the viewport: `--bg-2`, 1px `--line-2` border, `rounded-card`, 4px padding.
 
-### 6.8 Right column cards
+The items are:
+1. Start ▾ (a menu offering Webcam / Demo scene) / Stop
+2. Pause
+3. Boxes toggle
+4. Threshold compact slider with a fixed-width readout
+5. Fullscreen
 
-- **Current Detection:**
-  - Header "◎ Current Detection" + status dot.
-  - Body is a 2-column field grid: Object, Tracking ID, Status (pill), First Seen, Time in View, BBox (mono).
-  - Confidence row: `metric` value + pill bar with a 2px peak tick.
-  - Attributes appear as a wrap of meta chips (`upper: dark jacket`, `carrying: backpack`).
-  - Empty state: "Select an object in the feed or the list."
-- **AI Description:**
-  - Header "✦ AI Description" (Lucide `Sparkle` is allowed only here) + status dot.
-  - The body is a `--bg-3` well with the text in `body` `--text-2`, like the reference's Prompt card.
-  - Below the well, a meta-chip row: `simulated · 1.8s · 13:42:10`.
-  - Pending: a 3-line shimmer in the well. Unavailable: "No description model connected."
-- **Recent Detections:**
-  - Header "≡ Recent Detections", count chip, filter icon button.
-  - **Rows:** 52px, `rounded-control`, hover `--bg-3`. Each has:
-    - a 36×36 thumbnail (`rounded-control`, falls back to the class icon on `--bg-3`),
-    - line 1: `body-strong` "Person", with `data` "#004" in `--text-3`,
-    - line 2: `small` time · status,
-    - right side: confidence in mono.
-  - Selected row: `--accent-dim` fill and a 2px `--accent` left bar.
-  - A new row flashes `--accent-dim` for 400ms, once.
-- **Status pills:** 20px, `rounded-full`, 11px 500, tinted 14% fill with full-color text. VISIBLE is green, LOST is text-3, EXITED is icon-dim, FLAGGED is amber.
+Each item gets a tooltip with its shortcut. Separate the groups with dividers (play controls | boxes | threshold | fullscreen).
 
-### 6.9 Timeline card
+### 6.6 Side panel cards
 
-- Header "⏱ Detection Timeline" + event count chip + [1m | 5m | 15m] segmented control.
-- Lanes:
-  - One lane per class (max 5), 20px each, with an 80px label column.
-  - Track bars have `rounded-full` ends, class color at 50% (100% plus glow when selected).
-  - Event ticks are 6px dots; flagged ticks are amber.
-  - "Now" is a 1px `--accent` line at the right edge.
-  - Axis labels are `data` in `--text-3`, and gridlines are `--line-1`.
-- Hover shows a tooltip card. Clicking selects the track.
+- **Selected object card** (SPEC §8): header "Selected object". Content is grouped tightly as class + ID + pill, metric confidence + bar, meta chips, attribute chips, then the AI paragraph. Don't use field grids or BBox coordinates.
+- **Detections card:**
+  - Header "Detections" with a count chip.
+  - Rows are 48px: a 32×32 thumbnail, "Person" in `body-strong` with `#004` in `data` `--text-3`, time in `small` below, and confidence in mono on the right.
+  - Selected row: `--accent-dim` fill plus a 2px accent left bar. Lost or exited rows show at 50% opacity.
+  - Footer link: "View all in History →".
+- **Status pills:** used only in the Selected object card (VISIBLE green, LOST grey, EXITED dim, FLAGGED amber).
 
 ## 7. Other pages
 
-- **Overview:** node-style cards on the canvas.
-  - Four stat cards (header icon + title + dot, `metric` value, `small` delta).
-  - A small live viewport card.
-  - A class breakdown card: rows of name + count + pill bar.
-  - A last-events card.
-- **History:** one large card holding the table.
-  - Header row in `label` `--text-2`, rows 44px with `--line-1` separators, sticky header.
-  - Filters are `--bg-3` select chips above the table.
-- **Analytics:** three chart cards. Bars are `--accent` (class colors for distribution), gridlines `--line-1`, axes `data` `--text-3`.
-- **Settings:** stacked cards with the field pattern.
+- **History:**
+  - Three small stat cards (header + `metric` value, nothing else).
+  - A timeline card: one lane per class, rounded bars, a "now" line, and clicking a bar selects it.
+  - A table card: one search box + one class select above it, rows 44px, sticky header.
+  - An export menu and clear button in the page header.
+- **Settings drawer:** a 360px right drawer holding one card of fields in the label-above-field pattern, with "Reset to defaults" at the bottom.
 
 ## 8. Controls
 
@@ -340,25 +264,21 @@ This is the reference's bottom toolbar. It's a centered capsule in its own 48px 
 - **Avatar stack:** 24px circles, −6px overlap, 2px `--bg-1` ring, "+N" chip in `--bg-3`.
 - **Kbd:** `rounded-chip`, `--bg-3`, `data`.
 
-## 9. Model Management as a node canvas
+## 9. Model page as a small node canvas
 
-This page is the closest match to the reference, so build it as a pipeline graph on the dot canvas. It is not a form page.
+This is the only place wires appear. It has three nodes on one row, with an Endpoint card below:
 
 ```
-[Source]─────────────┐
-                     ├──●──[⚡]──●──[Output Preview]
-[Model Configuration]┘      ▲
-                [Thresholds]┘
+[Source] ──●── [⚡ Model] ──●── [Output]
+
+[Endpoint · WebSocket URL · Test connection · Use as source]
 ```
 
-- **Source node:** camera/demo select, resolution, fps.
-- **Model Configuration node:** dropzone (dashed `--line-2`, `rounded-control`), file row, name, version, task type, runtime and input resolution as selects (reference "AI Configuration").
-- **Thresholds node:** confidence and NMS IoU pill sliders, class list, watchlist (reference "Image Settings").
-- **⚡ hub:** deployment status. Clicking it opens the Deployment drawer (state machine, 4-step deploy checklist, actions).
-- **Output Preview node:** a stack of the last 3 detection thumbnails, offset and rotated 2–4°, as in the reference's "Final Results" stacked cards; or an empty state. Header dot shows deployment state.
-- **Endpoint node:** a collapsed node at the bottom for the WebSocket URL, Test connection, and "Use as detection source".
-- Wires pulse only while the simulated deployment is running. A persistent amber meta-chip in the top bar reads `Simulated deployment`.
-- Layout is fixed on desktop (no dragging). Below 1024px the nodes stack vertically, joined by short vertical wires.
+- The nodes are cards from §3. The Model node is the largest; it holds the dropzone, name, runtime, threshold, the state pill and one primary button.
+- Wires pulse only while a model is "running (simulated)" or a WebSocket source is streaming.
+- Output shows the last 3 thumbnails as a slightly rotated stack (like the reference's "Final Results"), or an empty state.
+- One amber notice sits at the top of the page.
+- Below 1024px the nodes stack vertically with short vertical wires.
 
 ## 10. Motion
 

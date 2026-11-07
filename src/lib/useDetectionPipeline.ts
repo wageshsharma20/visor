@@ -3,48 +3,76 @@ import { Tracker } from '@/engine/tracker';
 import { SimulatedSceneSource } from '@/sources/simulatedScene';
 import { WebSocketSource } from '@/sources/websocketSource';
 import { RecordedTracksSource } from '@/sources/recordedTracks';
-import { useDetectionStore } from '@/stores/detectionStore';
+import {
+  ActiveSourceType,
+  useDetectionStore,
+} from '@/stores/detectionStore';
 import { useUiStore } from '@/stores/uiStore';
-import { DetectionFrame, DescriptionUpdate, DetectionSource } from '@/types/detection';
+import {
+  DetectionFrame,
+  DescriptionUpdate,
+  DetectionSource,
+  SourceStatus,
+} from '@/types/detection';
 
-// Singleton tracker and source instances that persist across route changes
+// Singleton tracker and sources
 export const globalTracker = new Tracker();
 export const globalSimulatedSource = new SimulatedSceneSource();
 export const globalWebSocketSource = new WebSocketSource();
 export const globalRecordedSource = new RecordedTracksSource();
 
-let activeSource: DetectionSource = globalSimulatedSource;
+const sourceRegistry = new Map<ActiveSourceType, DetectionSource>([
+  ['synthetic', globalSimulatedSource],
+  ['recorded', globalRecordedSource],
+  ['websocket', globalWebSocketSource],
+]);
 
-export function setActiveDetectionSource(source: DetectionSource): void {
-  activeSource = source;
-  useDetectionStore.getState().setActiveSourceId(source.id);
+export function registerSource(type: ActiveSourceType, source: DetectionSource): void {
+  sourceRegistry.set(type, source);
+}
+
+export function getSourceInstance(type: ActiveSourceType): DetectionSource {
+  return sourceRegistry.get(type) ?? globalSimulatedSource;
 }
 
 export function getActiveDetectionSource(): DetectionSource {
-  return activeSource;
+  const activeType = useDetectionStore.getState().activeSourceType;
+  return getSourceInstance(activeType);
+}
+
+export function setActiveDetectionSource(
+  type: ActiveSourceType,
+  options?: { resetOnSwitch?: boolean }
+): void {
+  useDetectionStore.getState().setActiveSourceType(type, options);
 }
 
 export function startDetectionPipeline(): Promise<void> {
   useDetectionStore.getState().setPipelineRunning(true);
-  return activeSource.start({});
+  const source = getActiveDetectionSource();
+  return source.start({});
 }
 
 export function stopDetectionPipeline(): void {
-  activeSource.stop();
   useDetectionStore.getState().setPipelineRunning(false);
+  const source = getActiveDetectionSource();
+  source.stop();
 }
 
 export function pauseDetectionPipeline(): void {
-  activeSource.pause();
+  const source = getActiveDetectionSource();
+  source.pause();
 }
 
 export function resumeDetectionPipeline(): void {
-  activeSource.resume();
+  const source = getActiveDetectionSource();
+  source.resume();
 }
 
 /**
- * Top-level hook mounted in AppLayout.
- * Subscribes to the active source, feeds frames to Tracker, and batch-updates detectionStore at 4 Hz.
+ * Top-level detection pipeline hook.
+ * Re-subscribes whenever active source changes:
+ * stops old source, cleans up tracks if resetOnSwitch=true, and subscribes to new source.
  */
 export function useDetectionPipeline(): {
   tracker: Tracker;
@@ -55,6 +83,11 @@ export function useDetectionPipeline(): {
   resume: () => void;
 } {
   const threshold = useUiStore((s) => s.threshold);
+  const activeSourceType = useDetectionStore((s) => s.activeSourceType);
+  const websocketUrl = useDetectionStore((s) => s.websocketUrl);
+  const resetOnSwitch = useDetectionStore((s) => s.resetOnSwitch);
+  const pipelineRunning = useDetectionStore((s) => s.pipelineRunning);
+
   const syncFromTracker = useDetectionStore((s) => s.syncFromTracker);
   const setSourceStatus = useDetectionStore((s) => s.setSourceStatus);
 
@@ -63,14 +96,28 @@ export function useDetectionPipeline(): {
   const lastFrameTsRef = useRef(Date.now());
   const fpsCounterRef = useRef({ frames: 0, lastCalc: performance.now(), fps: 0 });
 
-  // Sync threshold changes to the tracker
+  // Sync threshold changes to tracker
   useEffect(() => {
     globalTracker.setThreshold(threshold);
   }, [threshold]);
 
+  // Active source subscription lifecycle
   useEffect(() => {
-    // Throttle batch sync to detectionStore to at most 4 Hz (250ms)
-    const FLUSH_INTERVAL_MS = 250;
+    const currentSource = getSourceInstance(activeSourceType);
+
+    if (activeSourceType === 'websocket' && 'setUrl' in currentSource) {
+      (currentSource as WebSocketSource).setUrl(websocketUrl);
+    }
+
+    // Reset tracker if configured
+    if (resetOnSwitch) {
+      globalTracker.clear();
+      useDetectionStore.getState().clear();
+      totalFramesRef.current = 0;
+      fpsCounterRef.current = { frames: 0, lastCalc: performance.now(), fps: 0 };
+    }
+
+    const FLUSH_INTERVAL_MS = 250; // 4 Hz
     let lastFlushTime = performance.now();
 
     const flushState = () => {
@@ -87,13 +134,13 @@ export function useDetectionPipeline(): {
     };
 
     const handleFrame = (frame: DetectionFrame) => {
+      const receiptTime = Date.now();
       totalFramesRef.current++;
       lastFrameTsRef.current = frame.ts;
       if (frame.latencyMs !== undefined) {
         lastLatencyRef.current = frame.latencyMs;
       }
 
-      // FPS calculation
       fpsCounterRef.current.frames++;
       const nowPerf = performance.now();
       const elapsed = nowPerf - fpsCounterRef.current.lastCalc;
@@ -105,10 +152,9 @@ export function useDetectionPipeline(): {
         fpsCounterRef.current.lastCalc = nowPerf;
       }
 
-      // Ingest into tracker
-      globalTracker.ingest(frame);
+      // One clock: receiptTime is passed to tracker for all timeouts and lastSeen
+      globalTracker.ingest(frame, receiptTime);
 
-      // Throttled sync to React store
       if (nowPerf - lastFlushTime >= FLUSH_INTERVAL_MS) {
         flushState();
       }
@@ -119,16 +165,19 @@ export function useDetectionPipeline(): {
       flushState();
     };
 
-    const handleStatus = (status: import('@/types/detection').SourceStatus) => {
+    const handleStatus = (status: SourceStatus) => {
       setSourceStatus(status);
     };
 
-    // Subscriptions
-    const unsubFrame = activeSource.onFrame(handleFrame);
-    const unsubDesc = activeSource.onDescription(handleDescription);
-    const unsubStatus = activeSource.onStatus(handleStatus);
+    const unsubFrame = currentSource.onFrame(handleFrame);
+    const unsubDesc = currentSource.onDescription(handleDescription);
+    const unsubStatus = currentSource.onStatus(handleStatus);
 
-    // Periodic step timer for track timeouts (lost / exited)
+    // If pipeline was running, start the new source
+    if (pipelineRunning) {
+      currentSource.start({});
+    }
+
     const stepInterval = window.setInterval(() => {
       globalTracker.step(Date.now());
       if (performance.now() - lastFlushTime >= FLUSH_INTERVAL_MS) {
@@ -141,12 +190,20 @@ export function useDetectionPipeline(): {
       unsubDesc();
       unsubStatus();
       clearInterval(stepInterval);
+      currentSource.stop();
     };
-  }, [syncFromTracker, setSourceStatus]);
+  }, [
+    activeSourceType,
+    websocketUrl,
+    resetOnSwitch,
+    pipelineRunning,
+    syncFromTracker,
+    setSourceStatus,
+  ]);
 
   return {
     tracker: globalTracker,
-    source: activeSource,
+    source: getActiveDetectionSource(),
     start: startDetectionPipeline,
     stop: stopDetectionPipeline,
     pause: pauseDetectionPipeline,

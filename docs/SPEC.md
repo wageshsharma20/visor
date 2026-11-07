@@ -8,23 +8,35 @@ VISOR is a frontend for operating a real-time visual detection model. A user con
 
 **Honesty requirement.** The UI must always make clear where detections come from: `SIMULATED`, `BROWSER MODEL`, or `REMOTE MODEL`. Simulated boxes are never drawn over a live webcam, because they would be meaningless rectangles over the user's room.
 
-## 2. Pages and routes
+## 2. Pages and routes (keep it to three)
 
 | Route | Page | Purpose |
 |---|---|---|
 | `/` → redirect | — | Goes to `/live` |
-| `/live` | Live Monitor | The hero: viewport + intel panel + timeline |
-| `/overview` | Overview | Session summary: 4 stat tiles (active tracks, total detections, flagged, uptime), a small live viewport thumbnail that links to `/live`, last 10 events, source + model status |
-| `/models` | Model Management | Upload/configure/"deploy" a model (simulated), connect a WebSocket endpoint |
-| `/history` | Detection History | Full table with search, filters, export, clear |
-| `/analytics` | Analytics | Detections per minute (bar), class distribution (horizontal bars), confidence histogram (10 bins), all hand-drawn SVG from the store |
-| `/settings` | Settings | Camera device, mirror webcam, overlay defaults, confidence threshold default, history cap, watchlist classes, reset all |
+| `/live` | Live Monitor | The hero: camera + overlays + one side panel |
+| `/models` | Model | Connect or "deploy" a model (simulated) and connect a WebSocket endpoint |
+| `/history` | History | Everything detected this session: small summary, timeline, searchable table, export |
 
-Icon rail order (DESIGN.md §5): Live Monitor, Overview, Models, History, Analytics, Settings. Exit/collapse sits at the bottom.
+**Settings is a right-side drawer**, opened from the gear in the top bar, not a page. It holds: camera device, mirror webcam, default threshold, history limit, and reset.
 
-## 3. Top bar (44px)
+**Removed on purpose:** Overview and Analytics pages, workspace switcher, avatars/members, and the system health dot. They repeated information shown elsewhere. Don't build them.
 
-From left to right: product mark + `VISOR` + `/ Visual Intelligence` in `--text-3` · workspace switcher (`Lobby-North ▾`, a static list of 2 workspaces that changes the camera label) · spacer · **source chip** (`SIMULATED` amber / `WEBCAM` / `DEMO SCENE`) · **model chip** (`yolov8n · RUNNING` green, `NO MODEL` text-3, `DEPLOYING` amber, `FAILED` red) · **camera chip** (`CAM_01 · CONNECTED` green dot) · system status dot with tooltip (fps, latency, dropped frames) · intel-drawer button (<1024px only) · settings icon · avatar menu (name, workspace, "Reset demo data").
+Icon rail order: Live Monitor, Model, History. Nothing else.
+
+## 3. Top bar (56px)
+
+Left: the page title (`title` style). Right: **one** status pill and the settings gear. Nothing else.
+
+The status pill summarizes the whole pipeline in one line, reading from `usePipelineStatus()`:
+- `Camera off`
+- `● Webcam · no model`
+- `● Demo scene · simulated` (amber)
+- `● Webcam · yolov8n` (green, real remote model)
+- `Camera blocked` (red)
+
+Hovering it shows a small popover with the details: resolution, fps, latency, source, model.
+
+**Rule:** camera, source and model status appear in exactly one place per screen. On Live, that's the top-bar pill plus the single LIVE chip on the video. Don't repeat them in chips, strips or HUD corners.
 
 ## 4. Data contracts (`src/types/detection.ts`)
 
@@ -139,13 +151,12 @@ src/
                          Select, Input, Tooltip, Menu, Drawer, Dialog, Toast, EmptyState, Kbd
     layout/              AppLayout, TopBar, IconRail, Canvas (dot grid)
     graph/               Wire, Port, HubNode, NodeCard (DESIGN.md §4)
-    live/                LiveMonitor, PipelineStrip, FloatingToolbar, CameraViewport, VideoLayer,
-                         DetectionOverlay, BoundingBox, BoxLabel, TrackTrail, HudLayer,
-                         InlineDetailCard, ViewportState
-    intel/               IntelPanel, CurrentDetection, AttributeGrid, AiDescription, RecentDetections
-    timeline/            DetectionTimeline, TimelineLane, TimelineAxis
-    models/              ModelManagement, ModelUpload, ModelConfigForm, DeploymentCard, EndpointForm
-    history/             HistoryPage, HistoryFilters, HistoryTable, ExportMenu
+    live/                LiveMonitor, Toolbar, CameraViewport, VideoLayer,
+                         DetectionOverlay, BoundingBox, BoxLabel, HudLayer, ViewportState
+    panel/               SidePanel, SelectedObjectCard, DetectionsCard
+    models/              ModelPage, SourceNode, ModelNode, OutputNode, EndpointCard
+    history/             HistoryPage, HistoryStats, HistoryTimeline, HistoryTable, ExportMenu
+    settings/            SettingsDrawer
   pages/                 thin route components composing the above
 ```
 
@@ -166,7 +177,7 @@ src/
 
 ## 6. Camera and sources
 
-**Modes** (segmented control in the floating toolbar, DESIGN.md §6.7): `Webcam` · `Demo scene`.
+**Modes:** chosen from the Start button's menu (DESIGN.md §6.5): `Webcam` · `Demo scene`. There is no separate mode toggle.
 
 **Webcam**
 - `getUserMedia({ video: { width: { ideal: 1920 }, height: { ideal: 1080 } } })`. Device picker in Settings via `enumerateDevices`.
@@ -180,47 +191,58 @@ src/
 1. **Recorded** (preferred): if `public/demo/scene.mp4` and `public/demo/scene.tracks.json` exist, play the video looped and muted, and emit the tracks entry closest to `video.currentTime`. The tracks file is produced offline by `tools/make_demo_tracks.py` (real YOLO + ByteTrack output), so boxes match real people and cars.
 2. **Synthetic** (fallback, always works): a `<canvas>` renders a stylized scene at 1280×720 and 30fps. It shows a dark perspective floor grid, 3–7 moving "people" (simple capsule silhouettes in muted grey) and occasional "vehicles" (rounded rects) crossing a road band at the top, and now and then a "bag" left on the floor. The same simulation state produces both the drawing and the detections, so boxes always match. Add ±1.5% bbox jitter and confidence noise for realism. Objects enter and leave at the edges and sometimes get occluded, which produces lost/reacquired events. Label the HUD `SIMULATED · SYNTHETIC SCENE`.
 
-**Controls (floating toolbar under the viewport, left → right):** Start/Stop · Pause/Resume (`Space`) · mode segmented control · divider · Boxes toggle (`B`) · Labels toggle (`L`) · Trails toggle (`T`) · divider · confidence threshold pill slider (0.30–0.95, step 0.05, default 0.50) · divider · snapshot (downloads PNG of video + overlay) · fullscreen (`F`, on the viewport element only, keeps overlay and HUD).
+**Controls (one small toolbar under the viewport, 5 items):** Start ▾ / Stop (the Start menu offers Webcam or Demo scene) · Pause/Resume (`Space`) · Boxes toggle (`B`; labels show with boxes) · confidence threshold slider (0.30–0.95, step 0.05, default 0.50) · fullscreen (`F`, viewport only). Trails, separate label toggle and snapshot are removed.
 
 ## 7. Selection model
 
-- `uiStore.selectedTrackId` is the single source of truth. Clicking a box, a recent-detection row, a timeline bar or a history row sets it.
-- `Esc` clears it. Clicking empty video clears it.
-- New detections never change the selection. Exception: if nothing is selected and "Auto-follow newest" (a toggle in the intel panel header, default off) is on, select the newest track.
-- If the selected track is exited, the intel panel still shows it with status `EXITED` and its last-known data. The overlay shows nothing for it, and the panel says "No longer in frame".
-- `↑/↓` in the recent list moves the selection.
+- `uiStore.selectedTrackId` is the single source of truth. Clicking a box or a list row (on Live or History) sets it.
+- `Esc` or clicking empty video clears it.
+- New detections never change the selection.
+- If the selected track has exited, the side panel still shows its last-known data with "No longer in frame".
+- `↑/↓` in the detections list moves the selection.
+- There is no floating detail card on the video. Selecting a box highlights it and fills the side panel.
 
-## 8. Intel panel (right, 360px)
+## 8. Side panel (right, 340px): two cards only
 
-1. **Current detection.** Shows class swatch + label + `#004` + status pill. Confidence is the Metric size, with a 2px bar under it and peak shown as `peak 99.1%`. Below that are first seen, last seen, and time in view (live-updating), plus bbox in px of the source (`x 412 y 188 · 164×402`) in mono. Empty state: "Select an object in the feed or the list."
-2. **Attributes.** A 2-column key/value grid in mono, from `track.attributes` (e.g. upper: dark jacket, lower: blue jeans, carrying: backpack, direction: → east, speed: walking). Hide the section when there are none.
-3. **AI description.** Pending shows a 3-line shimmer and "Analyzing frame…". Ready shows the text in Body size and a footer `generated 13:42:10 · simulated` (or the model name). Unavailable shows "No description model connected".
-4. **Recent detections.** The header shows a count and a filter chip row for classes. Newest is on top. Rows follow DESIGN.md §6. Clicking selects the track. A row for a track that isn't visible anymore shows the LOST/EXITED pill and stays selectable.
+1. **Selected object.** Empty state: "Select an object in the feed or the list." When selected:
+   - one header line: class + `#004` + status pill;
+   - confidence as `metric`, with a thin pill bar;
+   - one line of meta chips: first seen · time in view;
+   - up to 3 attributes as chips (e.g. dark jacket · backpack · walking east);
+   - the AI description as a short paragraph inside the same card, with a single `small` footer line ("simulated" or the model name). There's no separate AI card. While pending, show a 2-line shimmer. If no description model exists, omit the paragraph entirely.
+2. **Detections.** Newest on top, simple rows: thumbnail · "Person #004" · time · confidence. No filter chips here (filtering lives on History). Lost or exited rows are dimmed instead of getting a pill. Shows the last 50, with "View all in History →" at the bottom.
 
 ## 9. History page
 
-- Table columns: thumbnail, time (first seen), class, ID, peak confidence, duration, status, flagged, description (truncated). Columns are sortable. Rows are 40px with a sticky header.
-- Filters: text search (class, ID, description, attribute values), class multi-select, minimum confidence, time range (last 5m / 15m / 1h / session), event type, flagged only. Filters show as removable chips with "Clear filters".
-- Export menu: CSV and JSON of **the currently filtered** rows (filename `visor-detections-YYYYMMDD-HHmmss.csv`). Thumbnails are excluded from CSV and included in JSON only if "Include thumbnails" is checked.
-- "Clear history" opens a confirm dialog that names the count ("Delete 214 detections? This can't be undone."). It clears tracks and events but not the running source.
-- Empty and zero-result states each have their own message and action.
+- **Top row:** three small stat cards: Total detections · Flagged · Most seen class. No charts.
+- **Timeline card:** one lane per class, last 5/15/60 min. Clicking a bar selects that track. (This replaces the timeline that used to sit on Live.)
+- **Table:** time, class, ID, peak confidence, duration, flagged, description (truncated). Sortable, 44px rows, sticky header.
+- **Filters:** one search box (class, ID, description) plus a class select. There are no other filters.
+- **Export:** one button with a small menu (CSV / JSON) exporting the filtered rows. It's hidden when there are 0 rows.
+- **Clear history:** a confirm dialog that names the count.
+- Empty and zero-result states.
 
-## 10. Model Management (`/models`) — clearly a simulation
+## 10. Model page (`/models`): clearly a simulation
 
-A persistent amber meta-chip sits in the top bar ("Simulated deployment"), and a dismissible amber notice card on the canvas reads: "Deployment is simulated in this build. No model is executed. Connect a WebSocket endpoint to stream real detections."
+One amber notice at the top: "Deployment is simulated in this build. Connect a WebSocket endpoint to stream real detections." The top-bar pill shows `simulated` whenever a simulated model is active.
 
-The page is a **node canvas** (DESIGN.md §9): Source node, Model Configuration node and Thresholds node wire into the ⚡ hub, which wires into the Output Preview node. The Endpoint node sits below. The fields below are distributed across those nodes; below 1024px the nodes stack vertically.
-- **Configure (Model Configuration, Thresholds, Endpoint nodes)**
-  - Upload dropzone: accepts `.onnx .pt .tflite .engine .zip`, max 500 MB. Shows name, size, type, and a simulated upload progress bar with cancel. Validation errors are inline (wrong type, too large, empty file).
-  - Form: name (required), version (semver), description, task type (Object detection / Segmentation / Pose / Vision-language), runtime (ONNX Runtime / TensorRT / PyTorch / TFLite), input resolution (640 / 960 / 1280), confidence threshold, NMS IoU, class list (comma-separated, prefilled with COCO subset), watchlist classes.
-  - Endpoint: WebSocket URL (`wss://…`) with a [Test connection] button. It really tries to connect with a 5s timeout and reports success or the actual failure. If it connects, a "Use as detection source" switch makes `websocketSource` the active source. The message format expected is `DetectionFrame` JSON, documented in a collapsible code block on the page.
-  - Validation is blur-first, errors clear instantly when fixed, and Deploy is enabled only when the form is valid.
-- **Deployment (⚡ hub + Deployment drawer + Output Preview node)**
-  - State machine: `not_configured → ready → deploying → running ⇄ stopped`, plus `failed` (the deploying step has a "Simulate failure" debug checkbox so the state can be shown on demand).
-  - The hub's tooltip and the drawer show state pill, model name@version, runtime, resolution, uptime, and simulated throughput.
-  - Actions per state: Deploy / Stop / Restart / Retry. Deploying shows a 4-step checklist (Validate package → Allocate runtime → Load weights → Warm up) progressing over ~4s.
-  - "Running (simulated)" makes the simulated source use this model's name, class list and threshold, so the Live Monitor chip shows `yolov8n@1.2.0 · SIMULATED`.
-- Config persists to `localStorage` (wrapped in try/catch).
+The page is a small node canvas (DESIGN.md §9) with **three nodes**:
+**Source** → **⚡ Model** → **Output**, plus an **Endpoint** card below.
+- **Source node:** shows the current source (Webcam / Demo scene / WebSocket) and its status. Read-only, with a "Change" link that opens the Start menu on Live.
+- **Model node:**
+  - upload dropzone (`.onnx .pt .tflite .engine .zip`, max 500 MB, inline validation, simulated progress);
+  - name;
+  - runtime select;
+  - confidence threshold;
+  - one primary action that changes with state: Deploy (simulated) / Stop / Retry;
+  - a state pill: Not configured · Deploying · Running (simulated) · Stopped · Failed. Deploying shows a single progress line ("Loading weights…"), not a checklist.
+- **Output node:** the last 3 detection thumbnails as a stacked preview, or an empty state.
+- **Endpoint card:**
+  - WebSocket URL + [Test connection] (a real attempt, 5s timeout);
+  - when the test succeeds, a "Use as detection source" switch;
+  - a collapsible "Message format" code block showing the DetectionFrame JSON.
+
+Dropped from earlier drafts: version, task type, input resolution, NMS IoU, class list, watchlist editor, deployment drawer, debug "simulate failure" checkbox (use an invalid file to trigger Failed instead). Config persists to localStorage.
 
 ## 11. Simulated content
 

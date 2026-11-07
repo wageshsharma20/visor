@@ -11,17 +11,19 @@ import { RingBuffer } from './ringBuffer';
 export interface TrackerOptions {
   threshold?: number;
   watchlist?: string[];
-  maxEvents?: number;
+  maxEvents?: number; // default 2000 per review finding 6
+  maxHistoryTracks?: number; // default 1000 per review finding 6
   lostTimeoutMs?: number; // default 1000ms
   exitTimeoutMs?: number; // default 5000ms
+  dropExitedMs?: number; // default 60000ms (60s) per review finding 6
 }
 
 function formatDisplayId(trackId: string): string {
   const digits = trackId.replace(/\D/g, '');
   if (digits.length > 0) {
-    return `ID-${digits.padStart(3, '0')}`;
+    return `#${digits.padStart(3, '0')}`;
   }
-  return trackId.toUpperCase();
+  return `#${trackId}`;
 }
 
 function formatLabel(classId: string): string {
@@ -42,21 +44,34 @@ function createEventId(): string {
   return `evt_${Date.now()}_${eventSeq}`;
 }
 
+interface InternalTrack extends Track {
+  dirty: boolean;
+  exitedAt?: number;
+  unattendedSince?: number;
+}
+
 export class Tracker {
   private threshold: number;
   private watchlist: Set<string>;
   private readonly lostTimeoutMs: number;
   private readonly exitTimeoutMs: number;
+  private readonly dropExitedMs: number;
 
-  private readonly tracks = new Map<string, Track>();
+  private readonly liveTracks = new Map<string, InternalTrack>();
+  private readonly historyTracks: RingBuffer<Track>;
   private readonly events: RingBuffer<DetectionEvent>;
+
+  // Cached snapshots for immutable reference equality
+  private cachedSnapshots = new Map<string, Track>();
 
   constructor(options: TrackerOptions = {}) {
     this.threshold = options.threshold ?? 0.5;
     this.watchlist = new Set(options.watchlist ?? ['suitcase']);
     this.lostTimeoutMs = options.lostTimeoutMs ?? 1000;
     this.exitTimeoutMs = options.exitTimeoutMs ?? 5000;
-    this.events = new RingBuffer<DetectionEvent>(options.maxEvents ?? 500);
+    this.dropExitedMs = options.dropExitedMs ?? 60000;
+    this.events = new RingBuffer<DetectionEvent>(options.maxEvents ?? 2000);
+    this.historyTracks = new RingBuffer<Track>(options.maxHistoryTracks ?? 1000);
   }
 
   setThreshold(threshold: number): void {
@@ -96,10 +111,11 @@ export class Tracker {
 
   /**
    * Ingest a frame of detections.
-   * Filters by threshold, updates tracks, checks timeouts, and emits lifecycle events.
+   * Clock rule: always uses browser receive time (receiptTime) for lastSeen and timeouts.
+   * frame.ts is preserved as metadata only.
    */
-  ingest(frame: DetectionFrame, customNow?: number): DetectionEvent[] {
-    const now = customNow ?? frame.ts ?? Date.now();
+  ingest(frame: DetectionFrame, receiptTime?: number): DetectionEvent[] {
+    const now = receiptTime ?? Date.now();
     const emittedEvents: DetectionEvent[] = [];
 
     // Filter detections below threshold
@@ -113,12 +129,35 @@ export class Tracker {
       seenTrackIds.add(det.trackId);
       const centroid = getCentroid(det.bbox);
 
-      const existing = this.tracks.get(det.trackId);
+      const existing = this.liveTracks.get(det.trackId);
 
-      if (!existing) {
+      // An exited trackId that reappears creates a NEW track instance
+      if (existing && existing.status === 'exited') {
+        this.archiveTrack(existing);
+        this.liveTracks.delete(det.trackId);
+        this.cachedSnapshots.delete(det.trackId);
+      }
+
+      const current = this.liveTracks.get(det.trackId);
+
+      if (!current) {
         // Brand new track
-        const isFlagged = this.watchlist.has(det.classId);
-        const newTrack: Track = {
+        let isFlagged = false;
+
+        // Check watchlist rule:
+        // Suitcases only become flagged after 10s unattended (attributes.attended=false)
+        let unattendedSince: number | undefined;
+        if (this.watchlist.has(det.classId)) {
+          if (det.classId === 'suitcase') {
+            if (det.attributes?.attended === false) {
+              unattendedSince = now;
+            }
+          } else {
+            isFlagged = true;
+          }
+        }
+
+        const newTrack: InternalTrack = {
           id: det.trackId,
           classId: det.classId,
           label: formatLabel(det.classId),
@@ -133,9 +172,11 @@ export class Tracker {
           attributes: det.attributes ? { ...det.attributes } : {},
           description: { status: 'pending' },
           flagged: isFlagged,
+          dirty: true,
+          unattendedSince,
         };
 
-        this.tracks.set(det.trackId, newTrack);
+        this.liveTracks.set(det.trackId, newTrack);
         emittedEvents.push(
           this.emitEvent('track.new', det.trackId, det.classId, det.confidence, now)
         );
@@ -146,38 +187,54 @@ export class Tracker {
           );
         }
       } else {
-        // Existing track updated
-        const wasLost = existing.status === 'lost' || existing.status === 'exited';
-        existing.status = 'visible';
-        existing.lastSeen = now;
-        existing.confidence = det.confidence;
-        existing.peakConfidence = Math.max(existing.peakConfidence, det.confidence);
-        existing.bbox = { ...det.bbox };
+        // Existing active track update
+        const wasLost = current.status === 'lost';
+        current.status = 'visible';
+        current.lastSeen = now;
+        current.confidence = det.confidence;
+        current.peakConfidence = Math.max(current.peakConfidence, det.confidence);
+        current.bbox = { ...det.bbox };
+        current.dirty = true;
 
         // Append centroid, capped at 30 points
-        const trail = [...existing.trail, centroid];
+        const trail = [...current.trail, centroid];
         if (trail.length > 30) {
           trail.splice(0, trail.length - 30);
         }
-        existing.trail = trail;
+        current.trail = trail;
 
         if (det.attributes) {
-          existing.attributes = { ...existing.attributes, ...det.attributes };
+          current.attributes = { ...current.attributes, ...det.attributes };
         }
 
-        // Re-evaluate flagged status in case watchlist changed
-        if (this.watchlist.has(existing.classId)) {
-          if (!existing.flagged) {
-            existing.flagged = true;
+        // Check watchlist unattended timer for suitcase
+        if (this.watchlist.has(current.classId)) {
+          if (current.classId === 'suitcase') {
+            if (current.attributes?.attended === false) {
+              if (current.unattendedSince === undefined) {
+                current.unattendedSince = now;
+              } else if (now - current.unattendedSince >= 10000 && !current.flagged) {
+                current.flagged = true;
+                current.dirty = true;
+                emittedEvents.push(
+                  this.emitEvent('track.flagged', current.id, current.classId, det.confidence, now)
+                );
+              }
+            } else {
+              current.unattendedSince = undefined;
+            }
+          } else if (!current.flagged) {
+            current.flagged = true;
+            current.dirty = true;
             emittedEvents.push(
-              this.emitEvent('track.flagged', existing.id, existing.classId, det.confidence, now)
+              this.emitEvent('track.flagged', current.id, current.classId, det.confidence, now)
             );
           }
         }
 
         if (wasLost) {
           emittedEvents.push(
-            this.emitEvent('track.reacquired', existing.id, existing.classId, det.confidence, now)
+            this.emitEvent('track.reacquired', current.id, current.classId, det.confidence, now)
           );
         }
       }
@@ -191,12 +248,30 @@ export class Tracker {
   }
 
   /**
-   * Check timeouts for lost (>=1s) and exited (>=5s) tracks.
+   * Check timeouts for lost (>=1s) and exited (>=5s) tracks, and drop old exited tracks (>=60s).
    */
   step(now: number = Date.now(), seenInCurrentFrame?: Set<string>): DetectionEvent[] {
     const emittedEvents: DetectionEvent[] = [];
+    const toDrop: string[] = [];
 
-    for (const track of this.tracks.values()) {
+    for (const track of this.liveTracks.values()) {
+      // Check unattended suitcase timer even if not seen in this frame
+      if (
+        this.watchlist.has(track.classId) &&
+        track.classId === 'suitcase' &&
+        track.attributes?.attended === false &&
+        !track.flagged &&
+        track.unattendedSince !== undefined
+      ) {
+        if (now - track.unattendedSince >= 10000) {
+          track.flagged = true;
+          track.dirty = true;
+          emittedEvents.push(
+            this.emitEvent('track.flagged', track.id, track.classId, track.confidence, now)
+          );
+        }
+      }
+
       if (seenInCurrentFrame?.has(track.id)) {
         continue;
       }
@@ -205,50 +280,128 @@ export class Tracker {
 
       if (track.status === 'visible' && elapsed >= this.lostTimeoutMs) {
         track.status = 'lost';
+        track.dirty = true;
         emittedEvents.push(
           this.emitEvent('track.lost', track.id, track.classId, track.confidence, now)
         );
       } else if (track.status === 'lost' && elapsed >= this.exitTimeoutMs) {
         track.status = 'exited';
+        track.exitedAt = now;
+        track.dirty = true;
         emittedEvents.push(
           this.emitEvent('track.exited', track.id, track.classId, track.confidence, now)
         );
+      } else if (track.status === 'exited' && track.exitedAt !== undefined) {
+        if (now - track.exitedAt >= this.dropExitedMs) {
+          toDrop.push(track.id);
+        }
+      }
+    }
+
+    // Drop exited tracks older than 60s from live map into history buffer
+    for (const id of toDrop) {
+      const track = this.liveTracks.get(id);
+      if (track) {
+        this.archiveTrack(track);
+        this.liveTracks.delete(id);
+        this.cachedSnapshots.delete(id);
       }
     }
 
     return emittedEvents;
   }
 
+  private archiveTrack(track: InternalTrack): void {
+    this.historyTracks.push(this.createTrackSnapshot(track));
+  }
+
+  private createTrackSnapshot(track: InternalTrack): Track {
+    return {
+      id: track.id,
+      classId: track.classId,
+      label: track.label,
+      displayId: track.displayId,
+      status: track.status,
+      firstSeen: track.firstSeen,
+      lastSeen: track.lastSeen,
+      confidence: track.confidence,
+      peakConfidence: track.peakConfidence,
+      bbox: { ...track.bbox },
+      trail: [...track.trail],
+      attributes: { ...track.attributes },
+      description: { ...track.description },
+      thumbnail: track.thumbnail,
+      flagged: track.flagged,
+    };
+  }
+
   updateDescription(trackId: string, text: string): void {
-    const track = this.tracks.get(trackId);
+    const track = this.liveTracks.get(trackId);
     if (track) {
       track.description = {
         status: 'ready',
         text,
       };
+      track.dirty = true;
     }
   }
 
+  /**
+   * Returns immutable snapshot of all live tracks.
+   * Copies ONLY tracks whose lastSeen/status/description/bbox/etc. changed since the previous snapshot.
+   * Unchanged tracks reuse the previous object reference so React.memo works.
+   */
   getTracks(): Track[] {
-    return Array.from(this.tracks.values());
+    const result: Track[] = [];
+
+    for (const track of this.liveTracks.values()) {
+      if (track.dirty || !this.cachedSnapshots.has(track.id)) {
+        const snapshot = this.createTrackSnapshot(track);
+        this.cachedSnapshots.set(track.id, snapshot);
+        track.dirty = false;
+        result.push(snapshot);
+      } else {
+        result.push(this.cachedSnapshots.get(track.id)!);
+      }
+    }
+
+    return result;
   }
 
+  /**
+   * Returns immutable snapshot of visible & lost tracks only.
+   */
   getVisibleTracks(): Track[] {
-    return Array.from(this.tracks.values()).filter(
-      (t) => t.status === 'visible' || t.status === 'lost'
-    );
+    const all = this.getTracks();
+    return all.filter((t) => t.status === 'visible' || t.status === 'lost');
   }
 
   getTrack(id: string): Track | undefined {
-    return this.tracks.get(id);
+    const track = this.liveTracks.get(id);
+    if (!track) return undefined;
+
+    if (track.dirty || !this.cachedSnapshots.has(track.id)) {
+      const snapshot = this.createTrackSnapshot(track);
+      this.cachedSnapshots.set(track.id, snapshot);
+      track.dirty = false;
+      return snapshot;
+    }
+
+    return this.cachedSnapshots.get(track.id);
   }
 
   getEvents(): DetectionEvent[] {
     return this.events.toArray();
   }
 
+  getHistoryTracks(): Track[] {
+    return this.historyTracks.toArray();
+  }
+
   clear(): void {
-    this.tracks.clear();
+    this.liveTracks.clear();
+    this.cachedSnapshots.clear();
     this.events.clear();
+    this.historyTracks.clear();
   }
 }

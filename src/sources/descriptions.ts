@@ -77,60 +77,119 @@ export function generateDescription(
   }
 }
 
+interface PendingDesc {
+  det: RawDetection;
+  readyAt: number;
+  attrKey: string;
+}
+
 /**
  * Manages async scheduled simulated description generation.
+ * Rules (Review finding 5):
+ * Generate once per track (and once more only if attributes change), never on every frame.
  */
 export class DescriptionSimulator {
-  private readonly pendingTimeouts = new Map<string, number>();
+  private readonly pendingDescriptions = new Map<string, PendingDesc>();
+  private readonly generatedAttrKeys = new Map<string, string>();
   private readonly listeners = new Set<(d: DescriptionUpdate) => void>();
+  private totalGeneratedCount = 0;
+  private readonly minDelay: number;
+  private readonly maxDelay: number;
+  private rng: () => number;
+
+  constructor(options: { minDelay?: number; maxDelay?: number; rng?: () => number } = {}) {
+    this.minDelay = options.minDelay ?? 1500;
+    this.maxDelay = options.maxDelay ?? 3000;
+    this.rng = options.rng ?? Math.random;
+  }
+
+  setRng(rng: () => number): void {
+    this.rng = rng;
+  }
 
   subscribe(callback: (d: DescriptionUpdate) => void): () => void {
     this.listeners.add(callback);
     return () => this.listeners.delete(callback);
   }
 
-  schedule(detection: RawDetection): void {
-    if (this.pendingTimeouts.has(detection.trackId)) {
-      return; // Already pending
+  getTotalGeneratedCount(): number {
+    return this.totalGeneratedCount;
+  }
+
+  schedule(detection: RawDetection, now: number = Date.now()): void {
+    const trackId = detection.trackId;
+    if (this.pendingDescriptions.has(trackId)) {
+      return; // Already scheduled
     }
 
-    // 1500ms to 3000ms delay per spec
-    const delay = 1500 + Math.floor(Math.random() * 1500);
+    const attrKey = JSON.stringify(detection.attributes ?? {});
+    // If we already generated for this track with identical attributes, skip
+    if (this.generatedAttrKeys.get(trackId) === attrKey) {
+      return;
+    }
 
-    const timeoutId = window.setTimeout(() => {
-      this.pendingTimeouts.delete(detection.trackId);
-      const text = generateDescription(
-        detection.classId,
-        detection.attributes,
-        detection.bbox
-      );
+    // Delay between minDelay and maxDelay (1.5s to 3s per spec)
+    const spread = Math.max(0, this.maxDelay - this.minDelay);
+    const delay = this.minDelay + (spread > 0 ? Math.floor(this.rng() * spread) : 0);
 
-      const update: DescriptionUpdate = {
-        trackId: detection.trackId,
-        text,
-        ts: Date.now(),
-      };
+    this.pendingDescriptions.set(trackId, {
+      det: {
+        ...detection,
+        bbox: { ...detection.bbox },
+        attributes: { ...detection.attributes },
+      },
+      readyAt: now + delay,
+      attrKey,
+    });
+  }
 
-      for (const listener of this.listeners) {
-        listener(update);
+  /**
+   * Advances simulation time and emits ready descriptions.
+   */
+  step(now: number = Date.now()): DescriptionUpdate[] {
+    const readyUpdates: DescriptionUpdate[] = [];
+    const completedIds: string[] = [];
+
+    for (const [trackId, pending] of this.pendingDescriptions.entries()) {
+      if (now >= pending.readyAt) {
+        completedIds.push(trackId);
+        this.generatedAttrKeys.set(trackId, pending.attrKey);
+        this.totalGeneratedCount++;
+
+        const text = generateDescription(
+          pending.det.classId,
+          pending.det.attributes,
+          pending.det.bbox
+        );
+
+        const update: DescriptionUpdate = {
+          trackId,
+          text,
+          ts: now,
+        };
+
+        readyUpdates.push(update);
+
+        for (const listener of this.listeners) {
+          listener(update);
+        }
       }
-    }, delay);
+    }
 
-    this.pendingTimeouts.set(detection.trackId, timeoutId);
+    for (const id of completedIds) {
+      this.pendingDescriptions.delete(id);
+    }
+
+    return readyUpdates;
   }
 
   cancel(trackId: string): void {
-    const tid = this.pendingTimeouts.get(trackId);
-    if (tid !== undefined) {
-      window.clearTimeout(tid);
-      this.pendingTimeouts.delete(trackId);
-    }
+    this.pendingDescriptions.delete(trackId);
   }
 
   clear(): void {
-    for (const tid of this.pendingTimeouts.values()) {
-      window.clearTimeout(tid);
-    }
-    this.pendingTimeouts.clear();
+    this.pendingDescriptions.clear();
+    this.generatedAttrKeys.clear();
+    this.totalGeneratedCount = 0;
   }
 }

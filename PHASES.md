@@ -107,106 +107,87 @@ Acceptance:
 - No React imports anywhere under src/engine or src/sources.
 ```
 
-## Phase 4 — Camera viewport, overlays, HUD (the hero)
+## Phase 3.5 — Simplify (remove clutter before building more)
 
 ```
-Read AGENTS.md, docs/SPEC.md and docs/DESIGN.md fully before planning. DESIGN.md §5 is the most important section of the whole project — follow it to the pixel. Use the engine from Phase 3; do not put detection logic in components.
+Read AGENTS.md (new "Simplicity rules"), docs/SPEC.md §2, §3, §7, §8 and docs/DESIGN.md §5–§7. The product was too cluttered; the docs now describe a much simpler app. This phase only REMOVES and consolidates — no new features.
 
-Goal: the Live Monitor viewport is finished and looks exceptional.
+1. Pages: keep /live, /models, /history. Delete the Overview and Analytics pages, their routes, rail items and shortcuts. Turn /settings into a SettingsDrawer opened from the top-bar gear (same fields, fewer: camera device, mirror, default threshold, history limit, reset). Redirect /overview, /analytics, /settings to /live.
+2. Top bar: page title on the left; on the right only ONE status pill (SPEC §3, reading usePipelineStatus(), with a details popover on hover/focus) and the settings gear. Remove the wordmark, workspace switcher, SRC/MODEL/CAM chips, health dot, avatars and members dialog.
+3. Icon rail: logo + Live, Model, History. Exit button removed.
+4. Live Monitor: remove the PipelineStrip and the TimelineCard (the timeline moves to History in Phase 6). Viewport takes the freed height.
+   - HUD: only "● LIVE · CAM_01" top-left (or PAUSED) and the time top-right. Remove the bottom-corner chips and the viewfinder corner marks.
+   - Toolbar: 5 items (Start ▾ menu with Webcam / Demo scene, Pause, Boxes, threshold, Fullscreen). Remove the Webcam|Demo segment, Labels, Trails and Snapshot.
+   - Side panel: two cards, "Selected object" (with the AI description inside it) and "Detections". Delete the separate AI Description card.
+5. Delete components, stores fields, shortcuts and tests that only served removed features. Keep PipelineDebug for now (Phase 4 removes it).
 
-1. CameraViewport: VideoLayer (video element for webcam/recorded demo, canvas for synthetic scene), DetectionOverlay, HudLayer, InlineDetailCard, ViewportState — stacked in that order, all positioned using geometry.contentRect via a ResizeObserver, so everything aligns to the letterboxed picture, not the container.
-2. Camera handling per SPEC.md §6: webcam with typed errors and cleanup, device from Settings, mirror; Demo scene uses recorded files when present, else synthetic. Every ViewportState from DESIGN.md §6.6. Wire the PipelineStrip (DESIGN.md §6.1) to real camera/source/tracker state.
-3. Overlay: boxes drawn in one <svg> sized to the content rect with vector-effect non-scaling strokes; labels in an HTML layer using resolveLabelPositions; rAF interpolation between frames; every box state in DESIGN.md §6.4 (default, hover, selected with dimming + crosshair + wire-style bezier leader, new, lost, trail, flagged amber). Boxes are focusable buttons per SPEC.md §12.
-4. HUD exactly per DESIGN.md §6.3, timestamp updated by rAF writing to a ref (no per-frame React render).
-5. FloatingToolbar (DESIGN.md §6.7) with every control and shortcut in SPEC.md §6, including the compact pill-slider threshold. Fullscreen applies to the viewport element and keeps overlay + HUD; snapshot exports video+overlay as PNG.
-6. Selection per SPEC.md §7 (click box, click empty to clear, Esc, Tab cycling). InlineDetailCard anchored and clamped as specified.
-7. Remove <PipelineDebug/>.
-
-Acceptance (verify all in the browser, with screenshots and a short screen recording):
-- Synthetic demo: boxes sit exactly on the drawn objects at 1440, 1024 and 390 widths and after resizing the window live; fullscreen keeps alignment.
-- Webcam: permission prompt flow works; denying shows the denied state with "Run demo scene instead"; no simulated boxes ever appear over the webcam.
-- Pause freezes video + overlay; threshold slider immediately hides/shows boxes; B/L/T/F/Space shortcuts work.
-- Labels never overlap; near-top boxes flip their label inside.
-- Profile with React DevTools/Performance panel for 10s of demo: the intel panel and timeline do not re-render on every frame. Report what you measured.
-- Compare your 1440×900 screenshot against DESIGN.md §6 line by line and list any deviations you fixed.
+Acceptance: audit/typecheck/lint/test/build pass; zero console warnings; screenshots of /live at 1440 and 390, /models and /history at 1440. Count and report: rail items (3), top-bar elements right side (2), toolbar items (5), side-panel cards (2). Commit "refactor: simplify app to three pages and a single status surface".
 ```
 
-## Phase 5 — Intelligence panel and timeline
+## Phase 4 — Camera viewport and detection overlay (the hero)
 
 ```
-Read AGENTS.md, docs/SPEC.md and docs/DESIGN.md fully before planning. Reuse primitives and stores; all data comes from detectionStore/uiStore.
+Read AGENTS.md, docs/SPEC.md §6–§7 and docs/DESIGN.md §6.1–§6.5. Use the engine from Phase 3; no detection logic in components. Keep it simple — don't add anything the docs don't list.
 
-Goal: the right-hand intel panel (SPEC.md §8) and the bottom timeline (DESIGN.md §7) are complete and synchronized with the viewport.
+1. CameraViewport: VideoLayer (video for webcam, canvas for the synthetic scene), DetectionOverlay, the 2 HUD chips, ViewportState — all positioned with geometry.contentRect + ResizeObserver so they align to the letterboxed picture.
+2. Start ▾ menu: "Webcam" (existing real getUserMedia flow) or "Demo scene" (synthetic source drawing into the canvas). Switching stops the previous source. The webcam keeps running when navigating to other pages (the top-bar pill shows it's live).
+3. Overlay per DESIGN §6.3: one <svg> for boxes (non-scaling 1.5px strokes), HTML labels via resolveLabelPositions ("PERSON 98%", ID only on hover/selected), rAF interpolation, lost = dashed fade, flagged = amber, selected = 2px + glow + others dimmed. Boxes are focusable buttons.
+4. With webcam and no model: no boxes ever; the small "No model connected · Connect →" chip.
+5. Toolbar behaviors: Pause freezes video + overlay; Boxes toggles the overlay; threshold immediately hides/shows boxes; Fullscreen on the viewport card; shortcuts Space / B / F.
+6. Selection: click box selects (fills the side panel's Selected object card), click empty or Esc clears.
+7. Remove PipelineDebug.
 
-1. IntelPanel sections: CurrentDetection, AttributeGrid, AiDescription (pending shimmer → ready → unavailable), RecentDetections (thumbnails, pills, new-row flash once, class filter chips, keyboard ↑/↓, virtualization past 100 rows), "Auto-follow newest" toggle in the header (default off).
-2. Selection rules from SPEC.md §7 exactly — a new detection must never steal the selection; exited tracks remain inspectable with "No longer in frame".
-3. DetectionTimeline: class lanes, track bars from first to last seen, event ticks, 1/5/15 min window, live scrolling "now" edge, hover tooltip, click to select, selected bar highlighted, axis labels in mono.
-4. Below 1024px the intel panel lives in the right drawer; below 640px use the segmented [Current · Recent · Timeline] layout from DESIGN.md §4.
-
-Acceptance:
-- Click a box → panel + recent row + timeline bar all highlight the same track. Click a recent row → box highlights in the feed (if visible). Click a timeline bar → same.
-- Leave the demo running 3 minutes with a track selected: selection never changes on its own (auto-follow off), memory stays flat (check the Performance monitor), list stays smooth.
-- Screenshots at 1440, 1024 (drawer open), 390. Cards match DESIGN.md §6.8 exactly (52px rows, 36px thumbnails, field-label pattern, meta chips, AI Description well).
+Acceptance (in the browser): in Demo scene, boxes sit exactly on the drawn objects at 1440, 1024 and 390 and after live window resizing and in fullscreen; webcam shows no boxes; labels never overlap; the side panel doesn't re-render every frame (report what you measured). Screenshots at 1440 and 390. Commit "feat(phase-4): camera viewport and detection overlay".
 ```
 
-## Phase 6 — History, Overview, Analytics, Settings
+## Phase 5 — Side panel (Selected object + Detections)
 
 ```
-Read AGENTS.md, docs/SPEC.md and docs/DESIGN.md fully before planning. No new visual language — these pages must look like they belong to the Live Monitor.
+Read AGENTS.md, SPEC.md §7–§8 and DESIGN.md §6.6. Two cards only.
 
-1. /history per SPEC.md §9: sortable table, all filters as removable chips, search across class/ID/description/attributes, Export menu (CSV/JSON of filtered rows, include-thumbnails option for JSON), Clear history with a named-count confirm dialog, empty and zero-results states. Clicking a row selects the track and offers "Show in Live Monitor".
-2. /overview per SPEC.md §2: node-style cards per DESIGN.md §7 (stat cards with metric values — no count-up animations — and the class breakdown card), live thumbnail of the viewport, last 10 events, source/model status.
-3. /analytics: three hand-drawn SVG charts from store data (detections/min bars for the session, class distribution horizontal bars, confidence histogram). Axes in the data token in text-3, bars in accent or class colors, gridlines in line-1, hover values. Proper empty state before any data exists.
-4. /settings: camera device select (enumerateDevices, with a permission hint), mirror, overlay defaults (boxes/labels/trails), default threshold, history cap, watchlist classes, "Reset all settings" with confirm. Persist via localStorage with try/catch.
+1. Selected object card: class + #ID + status pill; metric confidence + thin bar; meta chips (first seen · time in view); up to 3 attribute chips; AI description paragraph inside the card (2-line shimmer while pending; omitted if no description model) with a one-line footer ("simulated" or model name). Empty state per SPEC.
+2. Detections card: newest first, last 50 rows (48px, 32px thumbnail, "Person #004", time, confidence), lost/exited rows at 50% opacity, selected row highlighted, new row flashes once, ↑/↓ keyboard selection, "View all in History →".
+3. Clicking a row selects the track and highlights its box if visible. New detections never steal the selection.
+4. 640–1023px: the panel is a right drawer opened by "Detections (n)" in the top bar. <640px: cards stack under the toolbar.
 
-Acceptance:
-- Exported CSV opens correctly in a spreadsheet (commas/quotes inside descriptions don't break columns); JSON is valid and matches the Track type.
-- Filters combine correctly (AND) and the export uses the filtered set — test with at least 3 combinations.
-- All four pages at 1440 and 390 without overflow.
+Acceptance: click box ↔ row stay in sync; 3 minutes of demo with a selection held — selection never changes by itself, memory flat; screenshots at 1440, 768 (drawer open) and 390. Commit "feat(phase-5): side panel".
 ```
 
-## Phase 7 — Model Management (simulated deployment, real WebSocket test)
+## Phase 6 — History page and Settings drawer
 
 ```
-Read AGENTS.md, docs/SPEC.md and docs/DESIGN.md fully before planning. Follow SPEC.md §10 and DESIGN.md §9 exactly: this page is a node canvas wired with the graph primitives, with the amber "Simulated deployment" chip and notice.
+Read AGENTS.md, SPEC.md §9 and §2 (Settings drawer), DESIGN.md §7.
 
-1. ModelUpload: dropzone + picker, type/size/empty validation with inline messages, simulated progress with cancel, file summary row.
-2. ModelConfigForm with every field in SPEC.md §10, blur-first validation, instant error clearing, Deploy enabled only when valid. Verb-first button labels ("Deploy model", "Stop model", "Test connection") — never "Submit"/"OK".
-3. ⚡ hub + Deployment drawer + Output Preview node (stacked rotated thumbnails) with the full state machine (not_configured, ready, deploying with 4-step checklist, running, stopped, failed via the "Simulate failure" checkbox), uptime, and correct actions per state.
-4. EndpointForm: real WebSocket connection test with 5s timeout and the true error; "Use as detection source" switch that swaps the active source to websocketSource; collapsible DetectionFrame message format documentation (copyable JSON example).
-5. Integration: a "running" simulated model updates the simulator's label, classes, threshold and watchlist; the top bar and HUD model chips reflect state everywhere ("yolov8n@1.2.0 · SIMULATED").
-6. Persist config to localStorage.
+1. History: 3 stat cards (Total detections, Flagged, Most seen class); timeline card (lane per class, 5/15/60 min, click bar = select); table (time, class, ID, peak confidence, duration, flagged, description) with one search box + one class select; Export menu (CSV/JSON of filtered rows, hidden when empty); Clear history confirm naming the count; empty and zero-result states.
+2. Settings drawer: camera device (enumerateDevices), mirror webcam, default threshold, history limit, Reset to defaults. Persist to localStorage with try/catch.
 
-Acceptance:
-- Walk every state transition and screenshot each state.
-- Nowhere in the UI claims a real model is executing in simulated mode (grep the copy).
-- Test connection against wss://echo.websocket.org (or any echo server) shows success; against an invalid host shows a clear failure within 5s.
+Acceptance: exported CSV opens correctly in a spreadsheet (commas/quotes in descriptions); search + class filter combine; screenshots at 1440 and 390. Commit "feat(phase-6): history and settings".
 ```
 
-## Phase 8 — Design and engineering audit (no new features)
+## Phase 7 — Model page (simulated deployment, real WebSocket)
 
 ```
-Read AGENTS.md, docs/SPEC.md and docs/DESIGN.md fully. Do NOT add features. Your job is to make what exists flawless.
+Read AGENTS.md, SPEC.md §10 and DESIGN.md §9. Three nodes + one endpoint card, nothing more.
 
-Work through this as a checklist and report each item as fixed / already OK:
+1. Source node (read-only status + "Change" link), Model node (dropzone with validation + simulated progress, name, runtime, threshold, state pill, one primary action: Deploy (simulated) / Stop / Retry; an invalid file leads to Failed), Output node (stack of last 3 thumbnails or empty state). Wires between them using the graph primitives; pulse only while running/streaming.
+2. Endpoint card: WebSocket URL, real Test connection (5s timeout), "Use as detection source" switch after success (switches the active source via the Phase 3 source switching), collapsible DetectionFrame message format.
+3. A simulated model shows as "simulated" in the top-bar pill everywhere — never as a real running model.
+4. Persist config to localStorage.
 
-Visual
-- Screenshot every route at 1440×900, 1024×768, 390×844. For each, compare against DESIGN.md: type tokens, field-label pattern, 4px spacing, named radius tokens, card borders/no card shadows, green used only where DESIGN.md allows, wires only where data flows, icon size/stroke consistency (16px, 1.75).
-- grep for hex colors outside tokens.css, font sizes not in the scale, rounded-lg/xl, shadow-* on non-floating elements, gradients, backdrop-blur. Fix all.
-- Bounding boxes: check every state on the synthetic scene and webcam (no boxes). Label collisions, top-edge flip, mirroring, fullscreen alignment.
-- Banned list in DESIGN.md §10 — confirm none present.
+Acceptance: walk Not configured → Deploying → Running (simulated) → Stopped, and Failed via invalid file; test connection against a reachable echo server and an invalid host; screenshots at 1440 and 390. Commit "feat(phase-7): model page".
+```
 
-Interaction
-- Every button/toggle/shortcut does what it says. Every empty, loading, error state reachable and correct. Camera permission denied/granted/no-device paths. Model state machine. Export files open correctly.
-- Keyboard-only pass through /live and /models; visible focus everywhere; dialogs trap and restore focus.
-- prefers-reduced-motion (emulate in DevTools) behaves per DESIGN.md §9.
+## Phase 8 — Final polish audit (no new features)
 
-Engineering
-- Zero TypeScript, lint, test and console errors/warnings. Remove dead code, unused exports and the /__ui route from the production router (keep it behind import.meta.env.DEV).
-- 5-minute demo soak: memory flat, no growing listeners, fps steady; report numbers.
-- npm run build succeeds; report bundle size.
+```
+Read AGENTS.md (especially Simplicity rules), DESIGN.md and SPEC.md. Do NOT add features. Make what exists flawless and simple.
 
-Finish with a list of the 10 most impactful fixes you made, with before/after screenshots for the top 3.
+- Simplicity check: for every screen, list every element and remove any that repeats information or isn't in the docs. Confirm: 3 rail items, 2 top-bar items on the right, 5 toolbar items, 2 side-panel cards, status shown once per screen.
+- Visual: screenshots of every page and the Settings drawer at 1440, 1024 and 390; check type tokens, spacing, radius tokens, borders, green used sparingly; audit:tokens clean.
+- Interaction: every button works; webcam allow/deny/stop; demo scene; selection sync; export; model states; keyboard-only pass with visible focus; prefers-reduced-motion.
+- Engineering: zero TS/lint/test/console errors or warnings; remove dead code; 5-minute demo soak with flat memory; build succeeds.
+
+Report the 10 most impactful fixes with before/after screenshots for the top 3. Commit "chore: final polish".
 ```
 
 ## Phase 9 (optional) — Real in-browser detection on the webcam
