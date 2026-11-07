@@ -1,39 +1,66 @@
-import React from 'react';
+import React, { useEffect, useId } from 'react';
+import {
+  useGraphContext,
+  WireState,
+  WireOrientation,
+} from './GraphContext';
 import { computeBezierWire, Point } from '@/lib/wireMath';
+import { usePrefersReducedMotion } from '@/lib/usePrefersReducedMotion';
 
-export type WireState = 'streaming' | 'idle' | 'error';
+export type { WireState, WireOrientation };
 
 export interface WireProps {
-  start: Point;
-  end: Point;
+  from?: string;
+  to?: string;
+  start?: Point;
+  end?: Point;
   state?: WireState;
-  orientation?: 'horizontal' | 'vertical';
+  orientation?: WireOrientation;
   curvature?: number;
   className?: string;
 }
 
 export const Wire: React.FC<WireProps> = ({
+  from,
+  to,
   start,
   end,
   state = 'streaming',
-  orientation = 'horizontal',
+  orientation = 'auto',
   curvature = 0.5,
   className = '',
 }) => {
+  const generatedId = useId();
+  const filterId = useId().replace(/:/g, '');
+  const context = useGraphContext();
+  const registerWire = context?.registerWire;
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  // If inside GraphCanvas and using port IDs, register with GraphCanvas
+  useEffect(() => {
+    if (registerWire && from && to) {
+      return registerWire({
+        id: generatedId,
+        from,
+        to,
+        state,
+        orientation,
+        curvature,
+        filterId: `wire-filter-${filterId}`,
+        className,
+      });
+    }
+  }, [registerWire, from, to, state, orientation, curvature, filterId, className, generatedId]);
+
+  // If inside GraphCanvas with from/to, GraphCanvas renders the SVG layer!
+  if (context && from && to) {
+    return null;
+  }
+
+  // Standalone fallback when start and end coordinates are passed
+  if (!start || !end) return null;
+
   const curve = computeBezierWire(start, end, orientation, curvature);
-
-  // Bounding box for SVG container
-  const minX = Math.min(start.x, end.x, curve.cp1.x, curve.cp2.x) - 10;
-  const minY = Math.min(start.y, end.y, curve.cp1.y, curve.cp2.y) - 10;
-  const maxX = Math.max(start.x, end.x, curve.cp1.x, curve.cp2.x) + 10;
-  const maxY = Math.max(start.y, end.y, curve.cp1.y, curve.cp2.y) + 10;
-  const width = Math.max(20, maxX - minX);
-  const height = Math.max(20, maxY - minY);
-
-  // SVG-local coordinates
-  const localStart = { x: start.x - minX, y: start.y - minY };
-  const localEnd = { x: end.x - minX, y: end.y - minY };
-  const localCurve = computeBezierWire(localStart, localEnd, orientation, curvature);
 
   const strokeColor = {
     streaming: 'var(--accent)',
@@ -55,25 +82,18 @@ export const Wire: React.FC<WireProps> = ({
 
   return (
     <svg
-      className={`absolute pointer-events-none overflow-visible ${className}`}
-      style={{
-        left: `${minX}px`,
-        top: `${minY}px`,
-        width: `${width}px`,
-        height: `${height}px`,
-      }}
+      className={`absolute inset-0 w-full h-full pointer-events-none overflow-visible ${className}`}
       aria-hidden="true"
     >
       <defs>
-        <filter id={`wire-glow-${state}`} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="2" result="blur" />
+        <filter id={`wire-pulse-glow-${filterId}`} x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="2.5" result="blur" />
           <feComposite in="SourceGraphic" in2="blur" operator="over" />
         </filter>
       </defs>
 
-      {/* Main wire bezier path */}
       <path
-        d={localCurve.path}
+        d={curve.path}
         fill="none"
         stroke={strokeColor}
         strokeWidth="1.5"
@@ -82,29 +102,27 @@ export const Wire: React.FC<WireProps> = ({
         strokeDasharray={state === 'error' ? '4 4' : undefined}
       />
 
-      {/* Start and end port dots */}
       <circle
-        cx={localStart.x}
-        cy={localStart.y}
+        cx={start.x}
+        cy={start.y}
         r="3"
         fill={portFill}
         stroke="var(--bg-1)"
         strokeWidth="2"
       />
       <circle
-        cx={localEnd.x}
-        cy={localEnd.y}
+        cx={end.x}
+        cy={end.y}
         r="3"
         fill={portFill}
         stroke="var(--bg-1)"
         strokeWidth="2"
       />
 
-      {/* Traveling animated pulse dot (only in streaming state) */}
-      {state === 'streaming' && (
-        <circle r="2.5" fill="var(--accent-bright)" filter={`url(#wire-glow-${state})`}>
+      {state === 'streaming' && !prefersReducedMotion && (
+        <circle r="2.5" fill="var(--accent-bright)" filter={`url(#wire-pulse-glow-${filterId})`}>
           <animateMotion
-            path={localCurve.path}
+            path={curve.path}
             dur="1.6s"
             repeatCount="indefinite"
             keyPoints="0;1"

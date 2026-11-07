@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Button,
   IconButton,
@@ -28,6 +28,7 @@ import {
   Wire,
   HubNode,
   NodeCard,
+  GraphCanvas,
 } from '@/components/graph';
 import {
   Play,
@@ -46,7 +47,26 @@ import {
   Video,
 } from 'lucide-react';
 
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 640;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return isMobile;
+};
+
 export const UiReviewPage: React.FC = () => {
+  const isMobile = useIsMobile();
+
   // State for interactive primitives
   const [sliderVal, setSliderVal] = useState(0.65);
   const [compactSliderVal, setCompactSliderVal] = useState(0.5);
@@ -240,7 +260,10 @@ export const UiReviewPage: React.FC = () => {
                 <Pill variant="rec" pulse>
                   REC
                 </Pill>
-                <Pill variant="neutral">SIMULATED</Pill>
+                <Pill variant="simulated" dot>
+                  SIMULATED
+                </Pill>
+                <Pill variant="demo">DEMO</Pill>
               </div>
             </div>
 
@@ -280,8 +303,8 @@ export const UiReviewPage: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                   <Badge variant="accent">ONLINE</Badge>
-                  <Badge variant="default">SIMULATED</Badge>
-                  <Badge variant="amber">ATTENTION</Badge>
+                  <Badge variant="amber">SIMULATED</Badge>
+                  <Badge variant="amber">DEMO</Badge>
                   <Badge variant="red">DISCONNECTED</Badge>
                 </div>
               </div>
@@ -315,9 +338,10 @@ export const UiReviewPage: React.FC = () => {
             {/* White Pill Sliders */}
             <div className="p-4 bg-bg-3 rounded-control space-y-4">
               <div className="text-label text-text-2">
-                Pill Sliders (28px track in bg-3, fill-white pill, 20px dark thumb)
+                Pill Sliders (surface=&quot;well&quot; &rarr; track in bg-4, dual-clipped min/max labels)
               </div>
               <Slider
+                surface="well"
                 label="Confidence Threshold"
                 min={0.3}
                 max={0.95}
@@ -331,6 +355,7 @@ export const UiReviewPage: React.FC = () => {
               <div className="pt-2">
                 <div className="text-label text-text-2 mb-1.5">Compact Toolbar Variant (20px tall)</div>
                 <Slider
+                  surface="well"
                   variant="compact"
                   min={0}
                   max={1}
@@ -440,61 +465,71 @@ export const UiReviewPage: React.FC = () => {
         </Card>
 
         {/* SECTION 4: NODE GRAPH LANGUAGE (DESIGN.md §4) */}
-        <Card>
+        <Card id="section-node-graph" className="overflow-hidden">
           <CardHeader
             title="4. Node Graph Language (DESIGN.md §4 &amp; §9)"
             icon={<Sparkles />}
             statusDot={<StatusDot state="live" pulse />}
             badge={<span className="font-mono text-data text-text-3">WIRES · PORTS · HUB NODE</span>}
           />
-          <div className="p-6 relative overflow-hidden bg-bg-1 border-t border-line-1">
+          <div className="p-4 sm:p-6 relative bg-bg-1 border-t border-line-1 rounded-b-card">
             <div className="text-label text-text-2 mb-4">
-              Real-time SVG Bezier Wires with Traveling Pulse Dots (Reference Pipeline Architecture)
+              Real-time SVG Bezier Wires Anchored to Port Elements with Traveling Pulse Dots
             </div>
 
             {/* Visual Node Graph Demonstration */}
-            <div className="relative h-44 flex items-center justify-between px-6 bg-canvas border border-line-1 rounded-card overflow-hidden">
-              {/* Left Node Card */}
-              <NodeCard
-                title="Camera Source"
-                icon={<Camera />}
-                statusDot={<StatusDot state="live" />}
-                rightPort="streaming"
-                className="w-48 z-10"
-              >
-                <div className="text-data font-mono text-text-1">1920×1080 · 30 FPS</div>
-                <div className="text-small text-text-3">CAM_01 Active</div>
-              </NodeCard>
+            <GraphCanvas className="w-full bg-canvas border border-line-1 rounded-card p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-8 sm:gap-4">
+                {/* Left / Top Node Card */}
+                <NodeCard
+                  title="Camera Source"
+                  icon={<Camera />}
+                  statusDot={<StatusDot state="live" />}
+                  ports={isMobile ? { bottom: 'cam-out' } : { right: 'cam-out' }}
+                  className="w-full sm:w-48 z-10"
+                >
+                  <div className="text-data font-mono text-text-1">1920×1080 · 30 FPS</div>
+                  <div className="text-small text-text-3">CAM_01 Active</div>
+                </NodeCard>
 
-              {/* Center Hub Node */}
-              <div className="z-10 flex flex-col items-center">
-                <HubNode label="yolov8n" active />
+                {/* Center Hub Node */}
+                <div className="z-10 flex items-center justify-center">
+                  <HubNode
+                    label="yolov8n"
+                    active
+                    orientation={isMobile ? 'vertical' : 'horizontal'}
+                    inPort="hub-in"
+                    outPort="hub-out"
+                  />
+                </div>
+
+                {/* Right / Bottom Output Node Card */}
+                <NodeCard
+                  title="Tracker Output"
+                  icon={<Activity />}
+                  statusDot={<StatusDot state="live" />}
+                  ports={isMobile ? { top: 'tracker-in' } : { left: 'tracker-in' }}
+                  className="w-full sm:w-48 z-10"
+                >
+                  <div className="text-data font-mono text-accent-bright">14 Objects Tracked</div>
+                  <div className="text-small text-text-3">Trails &amp; BBoxes</div>
+                </NodeCard>
               </div>
 
-              {/* Right Output Node Card */}
-              <NodeCard
-                title="Tracker Output"
-                icon={<Activity />}
-                statusDot={<StatusDot state="live" />}
-                leftPort="streaming"
-                className="w-48 z-10"
-              >
-                <div className="text-data font-mono text-accent-bright">14 Objects Tracked</div>
-                <div className="text-small text-text-3">Trails &amp; BBoxes</div>
-              </NodeCard>
-
-              {/* SVG Wires connecting nodes */}
+              {/* Connected Wires registered to port IDs */}
               <Wire
-                start={{ x: 216, y: 88 }}
-                end={{ x: 440, y: 88 }}
+                from="cam-out"
+                to="hub-in"
                 state="streaming"
+                orientation={isMobile ? 'vertical' : 'horizontal'}
               />
               <Wire
-                start={{ x: 476, y: 88 }}
-                end={{ x: 700, y: 88 }}
+                from="hub-out"
+                to="tracker-in"
                 state="streaming"
+                orientation={isMobile ? 'vertical' : 'horizontal'}
               />
-            </div>
+            </GraphCanvas>
           </div>
         </Card>
 

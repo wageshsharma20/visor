@@ -2,6 +2,7 @@ import React, { useRef, useCallback } from 'react';
 
 export interface SliderProps {
   variant?: 'default' | 'compact';
+  surface?: 'card' | 'well';
   min?: number;
   max?: number;
   step?: number;
@@ -17,6 +18,7 @@ export interface SliderProps {
 
 export const Slider: React.FC<SliderProps> = ({
   variant = 'default',
+  surface = 'card',
   min = 0,
   max = 1,
   step = 0.05,
@@ -32,6 +34,7 @@ export const Slider: React.FC<SliderProps> = ({
   const trackRef = useRef<HTMLDivElement | null>(null);
 
   const percentage = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+  const trackBg = surface === 'well' ? 'bg-bg-4' : 'bg-bg-3';
 
   const updateValueFromPointer = useCallback(
     (clientX: number) => {
@@ -97,16 +100,20 @@ export const Slider: React.FC<SliderProps> = ({
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onKeyDown={handleKeyDown}
-          className="relative w-[120px] h-5 bg-bg-3 rounded-full cursor-pointer overflow-hidden p-0.5 focus-visible:outline-none focus-visible:shadow-focus"
+          className={`relative w-[120px] h-5 ${trackBg} rounded-full cursor-pointer overflow-hidden p-0.5 focus-visible:outline-none focus-visible:shadow-focus`}
         >
-          {/* White fill pill */}
+          {/* White fill pill with transform: scaleX */}
           <div
-            className="h-full bg-fill-white rounded-full transition-[width] duration-fast relative flex items-center justify-end"
-            style={{ width: `${Math.max(12, percentage)}%` }}
-          >
-            {/* Dark thumb inside fill */}
-            <div className="w-3.5 h-3.5 rounded-full bg-bg-4 border border-line-2 shrink-0 mr-0.5" />
-          </div>
+            className="absolute inset-y-0.5 left-0.5 w-[calc(100%-4px)] bg-fill-white rounded-full origin-left transition-transform duration-fast pointer-events-none"
+            style={{ transform: `scaleX(${percentage / 100})` }}
+          />
+          {/* Dark thumb with transform: translateX */}
+          <div
+            className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-bg-4 border border-line-2 origin-left transition-transform duration-fast pointer-events-none"
+            style={{
+              transform: `translateX(calc(${percentage}% - ${percentage / 100 * 16}px))`,
+            }}
+          />
         </div>
         <span className="font-mono text-data text-text-2 w-10 text-right shrink-0">
           {formatValue(value)}
@@ -114,6 +121,8 @@ export const Slider: React.FC<SliderProps> = ({
       </div>
     );
   }
+
+  const scaleFactor = percentage > 0 ? 100 / percentage : 1;
 
   return (
     <div className={`flex flex-col gap-1.5 w-full select-none ${disabled ? 'opacity-40' : ''} ${className}`}>
@@ -135,20 +144,45 @@ export const Slider: React.FC<SliderProps> = ({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onKeyDown={handleKeyDown}
-        className="relative w-full h-7 bg-bg-3 rounded-full cursor-pointer flex items-center justify-between px-2.5 overflow-hidden focus-visible:outline-none focus-visible:shadow-focus"
+        className={`relative w-full h-7 ${trackBg} rounded-full cursor-pointer overflow-hidden focus-visible:outline-none focus-visible:shadow-focus`}
       >
-        {/* Background Min/Max labels */}
-        {minLabel && <span className="text-small text-text-3 z-10 pointer-events-none">{minLabel}</span>}
-        {maxLabel && <span className="text-small text-text-3 z-10 pointer-events-none">{maxLabel}</span>}
+        {/* Layer 1: Base min/max labels rendered on the track background in text-3 */}
+        {(minLabel || maxLabel) && (
+          <div className="absolute inset-0 flex items-center justify-between px-3 text-small text-text-3 pointer-events-none select-none z-0">
+            <span>{minLabel}</span>
+            <span>{maxLabel}</span>
+          </div>
+        )}
 
-        {/* White fill pill */}
+        {/* Layer 2: White fill pill animated with scaleX */}
         <div
-          className="absolute inset-y-1 left-1 bg-fill-white rounded-full transition-[width] duration-fast flex items-center justify-end pr-0.5 pointer-events-none"
-          style={{ width: `calc(${percentage}% - 8px)` }}
-        >
-          {/* Dark thumb circle at end */}
-          <div className="w-5 h-5 rounded-full bg-bg-4 border border-line-2 shrink-0" />
-        </div>
+          className="absolute inset-y-1 left-1 w-[calc(100%-8px)] bg-fill-white rounded-full origin-left transition-transform duration-fast pointer-events-none z-10"
+          style={{ transform: `scaleX(${percentage / 100})` }}
+        />
+
+        {/* Layer 3: Duplicate min/max labels clipped to the white fill in on-white color */}
+        {(minLabel || maxLabel) && (
+          <div
+            className="absolute inset-y-1 left-1 w-[calc(100%-8px)] rounded-full overflow-hidden origin-left transition-transform duration-fast pointer-events-none select-none z-20"
+            style={{ transform: `scaleX(${percentage / 100})` }}
+          >
+            <div
+              className="w-full h-full flex items-center justify-between px-3 text-small text-on-white font-medium origin-left"
+              style={{ transform: `scaleX(${scaleFactor})` }}
+            >
+              <span>{minLabel}</span>
+              <span>{maxLabel}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Layer 4: Dark 20px circle thumb animated with translateX */}
+        <div
+          className="absolute top-1 left-1 w-5 h-5 rounded-full bg-bg-4 border border-line-2 transition-transform duration-fast pointer-events-none z-30"
+          style={{
+            transform: `translateX(calc(${percentage}% - ${percentage / 100 * 20}px))`,
+          }}
+        />
       </div>
     </div>
   );

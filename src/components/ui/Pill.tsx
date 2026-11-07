@@ -1,6 +1,14 @@
 import React from 'react';
 
-export type PillVariant = 'visible' | 'lost' | 'exited' | 'flagged' | 'rec' | 'neutral';
+export type PillVariant =
+  | 'visible'
+  | 'lost'
+  | 'exited'
+  | 'flagged'
+  | 'rec'
+  | 'neutral'
+  | 'simulated'
+  | 'demo';
 
 export interface PillProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: PillVariant;
@@ -53,6 +61,18 @@ export const Pill: React.FC<PillProps> = ({
       text: 'text-text-2',
       border: 'border-line-2',
       dotColor: 'bg-text-3',
+    },
+    simulated: {
+      bg: 'bg-amber/15',
+      text: 'text-amber',
+      border: 'border-amber/30',
+      dotColor: 'bg-amber',
+    },
+    demo: {
+      bg: 'bg-amber/15',
+      text: 'text-amber',
+      border: 'border-amber/30',
+      dotColor: 'bg-amber',
     },
   };
 
