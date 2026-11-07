@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Zap,
   UploadCloud,
@@ -37,6 +37,7 @@ export const ModelsPage: React.FC = () => {
     setActiveModel,
     setStatus: setDeploymentStatus,
     setEndpointUrl,
+    setIsSimulated,
   } = useModelStore();
 
   const { mode, setMode } = useCameraStore();
@@ -48,18 +49,37 @@ export const ModelsPage: React.FC = () => {
   const [taskType, setTaskType] = useState('Object detection');
   const [confThreshold, setConfThreshold] = useState(0.5);
   const [iouThreshold, setIouThreshold] = useState(0.45);
+
   const [wsUrl, setWsUrl] = useState(endpointUrl);
+  const [wsError, setWsError] = useState<string | null>(null);
   const [wsTesting, setWsTesting] = useState(false);
-  const [wsStatus, setWsStatus] = useState<string | null>(null);
+  const [wsStatus, setWsStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const activeSocketRef = useRef<WebSocket | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isRunning = deploymentStatus === 'running';
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (activeSocketRef.current) {
+        try {
+          activeSocketRef.current.close();
+        } catch {
+          // Socket already closed
+        }
+      }
+    };
+  }, []);
 
   const handleDeployToggle = () => {
     if (isRunning) {
       setDeploymentStatus('stopped');
       setActiveModel(null);
+      setIsSimulated(false);
     } else {
       setDeploymentStatus('running');
+      setIsSimulated(true);
       setActiveModel({
         id: 'yolov8n-custom',
         name: modelName,
@@ -75,13 +95,85 @@ export const ModelsPage: React.FC = () => {
     }
   };
 
+  const validateWsUrl = (url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) {
+      setWsError(null);
+      return false;
+    }
+    if (!trimmed.startsWith('ws://') && !trimmed.startsWith('wss://')) {
+      setWsError('URL must begin with ws:// or wss://');
+      return false;
+    }
+    setWsError(null);
+    return true;
+  };
+
   const handleTestWs = () => {
+    if (!validateWsUrl(wsUrl)) {
+      if (!wsUrl.trim()) setWsError('Please enter a WebSocket URL');
+      return;
+    }
+
     setWsTesting(true);
     setWsStatus(null);
-    setTimeout(() => {
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (activeSocketRef.current) {
+      try {
+        activeSocketRef.current.close();
+      } catch {
+        // Socket already closed
+      }
+    }
+
+    try {
+      const socket = new WebSocket(wsUrl.trim());
+      activeSocketRef.current = socket;
+
+      timerRef.current = setTimeout(() => {
+        try {
+          socket.close();
+        } catch {
+          // Socket already closed
+        }
+        setWsTesting(false);
+        setWsStatus({
+          success: false,
+          message: 'Connection timed out after 5000ms. Host unreachable.',
+        });
+      }, 5000);
+
+      socket.onopen = () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        try {
+          socket.close();
+        } catch {
+          // Socket already closed
+        }
+        setWsTesting(false);
+        setWsStatus({
+          success: true,
+          message: 'Handshake accepted. Remote endpoint connected successfully.',
+        });
+      };
+
+      socket.onerror = () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        setWsTesting(false);
+        setWsStatus({
+          success: false,
+          message: 'Connection failed. Endpoint rejected handshake or is offline.',
+        });
+      };
+    } catch (err: unknown) {
+      if (timerRef.current) clearTimeout(timerRef.current);
       setWsTesting(false);
-      setWsStatus('Endpoint unreachable in offline sandbox (simulated verification)');
-    }, 1200);
+      setWsStatus({
+        success: false,
+        message: (err as Error).message || 'Invalid WebSocket endpoint address.',
+      });
+    }
   };
 
   return (
@@ -131,17 +223,17 @@ export const ModelsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Node Canvas (DESIGN.md §9) */}
+      {/* Node Canvas (DESIGN.md §9): Unused ports removed */}
       <div className="p-4 bg-canvas bg-bg-2 border border-line-1 rounded-card overflow-hidden">
         <GraphCanvas className="w-full">
-          {/* Top row of nodes */}
+          {/* Row of nodes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-            {/* 1. SOURCE NODE */}
+            {/* 1. SOURCE NODE (Only has right port) */}
             <NodeCard
               title="Source Node"
               icon={<Radio className="w-3.5 h-3.5 text-text-2" />}
-              statusDot={<StatusDot state="live" />}
-              ports={{ right: 'source-out', bottom: 'source-out-vert' }}
+              statusDot={<StatusDot state="idle" />}
+              ports={{ right: 'source-out' }}
               className="bg-bg-2"
             >
               <div className="space-y-3">
@@ -150,7 +242,6 @@ export const ModelsPage: React.FC = () => {
                   value={mode}
                   onChange={(val) => setMode(val as 'webcam' | 'demo')}
                   options={[
-                    { label: 'Synthetic Demo Scene', value: 'demo' },
                     { label: 'Local HD Webcam', value: 'webcam' },
                   ]}
                 />
@@ -161,37 +252,50 @@ export const ModelsPage: React.FC = () => {
               </div>
             </NodeCard>
 
-            {/* 2. INFERENCE HUB (Center) */}
+            {/* 2. INFERENCE HUB (Center): Non-truncating multi-line label */}
             <div className="flex flex-col items-center justify-center py-4">
               <HubNode
                 inPort="hub-in"
                 outPort="hub-out"
-                label={isRunning ? 'yolov8n · RUNNING' : '⚡ INFERENCE HUB'}
+                label={
+                  isRunning ? (
+                    <div className="text-center">
+                      <span className="text-text-1 font-mono">{modelName}</span>
+                      <span className="block text-data text-amber font-mono font-medium">
+                        SIMULATED
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-text-3 font-mono">Inference Hub</span>
+                  )
+                }
                 active={isRunning}
                 onClick={handleDeployToggle}
               />
             </div>
 
-            {/* 3. OUTPUT PREVIEW NODE */}
+            {/* 3. OUTPUT PREVIEW NODE (Only has left port) */}
             <NodeCard
               title="Output Preview"
               icon={<Layers className="w-3.5 h-3.5 text-text-2" />}
-              statusDot={<StatusDot state={isRunning ? 'live' : 'idle'} />}
-              ports={{ left: 'preview-in', top: 'preview-in-vert' }}
+              statusDot={<StatusDot state={isRunning ? 'warning' : 'idle'} />}
+              ports={{ left: 'preview-in' }}
               className="bg-bg-2"
             >
               <div className="min-h-[110px] bg-bg-3 border border-line-1 rounded-control p-3 flex flex-col items-center justify-center text-center">
                 {isRunning ? (
                   <div className="space-y-1">
-                    <CheckCircle2 className="w-6 h-6 text-accent mx-auto" />
-                    <div className="text-body-strong text-text-1">Telemetry Active</div>
-                    <div className="text-data text-text-3 font-mono">
-                      Routing detections to Live Monitor
+                    <CheckCircle2 className="w-5 h-5 text-amber mx-auto" />
+                    <div className="text-body-strong text-text-1">
+                      {modelName}@{modelVersion}
+                    </div>
+                    <div className="text-data text-amber font-mono font-medium">
+                      SIMULATED ACTIVE
                     </div>
                   </div>
                 ) : (
                   <div className="text-small text-text-3">
-                    Model stopped. Deploy to activate live preview stream.
+                    Model stopped. Deploy to activate simulated stream.
                   </div>
                 )}
               </div>
@@ -214,7 +318,6 @@ export const ModelsPage: React.FC = () => {
             statusDot={<StatusDot state="idle" />}
           />
           <div className="p-4 space-y-4">
-            {/* Upload Dropzone */}
             <div className="p-4 border border-dashed border-line-2 rounded-control bg-bg-3/30 flex flex-col items-center justify-center text-center hover:border-line-1 cursor-pointer transition-colors duration-fast">
               <UploadCloud className="w-6 h-6 text-text-3 mb-1.5" />
               <div className="text-small text-text-1 font-medium">Drop weight archive (.onnx, .pt, .tflite)</div>
@@ -320,12 +423,15 @@ export const ModelsPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
             <div className="flex-1">
               <Input
-                label="Endpoint URL (wss://)"
+                label="Endpoint URL (wss:// or ws://)"
                 placeholder="wss://api.visor-telemetry.internal/stream"
                 value={wsUrl}
+                error={wsError || undefined}
+                onBlur={() => validateWsUrl(wsUrl)}
                 onChange={(e) => {
                   setWsUrl(e.target.value);
                   setEndpointUrl(e.target.value);
+                  if (wsError) validateWsUrl(e.target.value);
                 }}
               />
             </div>
@@ -340,8 +446,14 @@ export const ModelsPage: React.FC = () => {
           </div>
 
           {wsStatus && (
-            <div className="text-small text-amber font-mono bg-bg-3 p-2 rounded-control border border-line-1">
-              {wsStatus}
+            <div
+              className={`text-small font-mono p-2.5 rounded-control border ${
+                wsStatus.success
+                  ? 'bg-accent-dim border-accent text-accent'
+                  : 'bg-bg-3 border-line-1 text-amber'
+              }`}
+            >
+              {wsStatus.message}
             </div>
           )}
         </div>

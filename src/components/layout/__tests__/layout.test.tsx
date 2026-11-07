@@ -34,7 +34,7 @@ describe('AppLayout Component', () => {
     );
 
     expect(screen.getByText('VISOR')).toBeInTheDocument();
-    expect(screen.getByText(/CAM_01 · OFF/i)).toBeInTheDocument();
+    expect(screen.getByText(/CAM_01 · offline/i)).toBeInTheDocument();
     expect(screen.getByText(/NO MODEL/i)).toBeInTheDocument();
     expect(screen.getByText(/NO SOURCE/i)).toBeInTheDocument();
     expect(screen.getByTestId('live-content')).toBeInTheDocument();

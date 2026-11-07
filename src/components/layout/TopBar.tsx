@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Zap,
   Cloud,
   ChevronDown,
   Settings as SettingsIcon,
@@ -19,8 +18,8 @@ import {
   Button,
 } from '@/components/ui';
 import { useCameraStore } from '@/stores/cameraStore';
-import { useModelStore } from '@/stores/modelStore';
 import { useUiStore } from '@/stores/uiStore';
+import { usePipelineStatus } from '@/stores/pipelineStatus';
 
 const WORKSPACES = ['Lobby-North', 'Warehouse-East'] as const;
 
@@ -28,8 +27,9 @@ export const TopBar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { status: cameraStatus, fps, latencyMs } = useCameraStore();
-  const { activeModel, sourceLabel } = useModelStore();
+  const { fps, latencyMs } = useCameraStore();
+  const pipeline = usePipelineStatus();
+
   const {
     activeWorkspace,
     setActiveWorkspace,
@@ -39,7 +39,6 @@ export const TopBar: React.FC = () => {
     setIsMembersOpen,
   } = useUiStore();
 
-  // Route title mapping
   const pageTitles: Record<string, string> = {
     '/live': 'Live Monitor',
     '/overview': 'Overview',
@@ -52,31 +51,25 @@ export const TopBar: React.FC = () => {
 
   const currentTitle = pageTitles[location.pathname] || 'Live Monitor';
 
-  const isCameraLive = cameraStatus === 'connected';
-  const cameraText = isCameraLive ? 'CAM_01 · LIVE' : 'CAM_01 · OFF';
-  const cameraDotState = isCameraLive ? 'live' : 'idle';
-
-  const modelText = activeModel ? `${activeModel.name} · RUNNING` : 'NO MODEL';
-  const modelDotState = activeModel ? 'live' : 'idle';
-
   const workspaceMenuItems: MenuItem[] = WORKSPACES.map((ws) => ({
     id: ws,
     label: ws,
     onClick: () => setActiveWorkspace(ws),
   }));
 
+  const isModelAmber = pipeline.model === 'running' && pipeline.simulated;
+
   return (
     <header className="h-topbar bg-bg-1 border-b border-line-1 flex items-center px-4 justify-between select-none z-sticky shrink-0">
-      {/* LEFT: Logo + Product Name + Workspace switcher + Page Title */}
+      {/* LEFT: VISOR Brand Text + Workspace switcher + Page Title (Duplicate logo mark removed) */}
       <div className="flex items-center gap-3 min-w-0">
         <div
           onClick={() => navigate('/live')}
-          className="flex items-center gap-2 cursor-pointer group shrink-0"
+          className="cursor-pointer group shrink-0 py-1"
         >
-          <div className="w-7 h-7 rounded-control bg-bg-2 border border-line-1 flex items-center justify-center text-accent group-hover:border-line-2 transition-colors duration-fast">
-            <Zap className="w-4 h-4 fill-accent/20" />
-          </div>
-          <span className="font-mono text-title text-text-1 tracking-tight">VISOR</span>
+          <span className="font-mono text-title text-text-1 tracking-tight group-hover:text-accent transition-colors duration-fast">
+            VISOR
+          </span>
         </div>
 
         <span className="text-small text-text-3 font-sans hidden md:inline shrink-0">
@@ -117,34 +110,44 @@ export const TopBar: React.FC = () => {
         </div>
       </div>
 
-      {/* RIGHT: Source/Model/Camera Chips + System Dot + Actions + Avatars */}
+      {/* RIGHT: Source/Model/Camera Chips (via usePipelineStatus) + System Dot + Actions + Avatars */}
       <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         {/* Source Chip */}
         <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-chip bg-bg-2 border border-line-1 text-data font-mono">
           <span className="text-text-3">SRC:</span>
-          {sourceLabel === 'SIMULATED' ? (
-            <span className="text-amber font-medium">SIMULATED</span>
+          {pipeline.source === 'none' ? (
+            <span className="text-text-3">NO SOURCE</span>
           ) : (
-            <span className="text-text-3">{sourceLabel}</span>
+            <span className="text-accent font-medium">{pipeline.sourceDisplay}</span>
           )}
         </div>
 
-        {/* Model Chip */}
+        {/* Model Chip: Amber if simulated per requirement */}
         <div
           onClick={() => navigate('/models')}
           className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-chip bg-bg-2 border border-line-1 text-data font-mono cursor-pointer hover:border-line-2 transition-colors duration-fast"
         >
-          <StatusDot state={modelDotState} />
-          <span className={activeModel ? 'text-text-1' : 'text-text-3'}>
-            {modelText}
+          <StatusDot
+            state={isModelAmber ? 'warning' : pipeline.model === 'running' ? 'live' : 'idle'}
+          />
+          <span
+            className={
+              isModelAmber
+                ? 'text-amber font-medium'
+                : pipeline.model === 'running'
+                ? 'text-accent'
+                : 'text-text-3'
+            }
+          >
+            {pipeline.modelDisplay}
           </span>
         </div>
 
-        {/* Camera Chip */}
+        {/* Camera Chip: Offline when off, resolution when live */}
         <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-chip bg-bg-2 border border-line-1 text-data font-mono">
-          <StatusDot state={cameraDotState} />
-          <span className={isCameraLive ? 'text-text-1' : 'text-text-3'}>
-            {cameraText}
+          <StatusDot state={pipeline.camera === 'live' ? 'live' : 'idle'} />
+          <span className={pipeline.camera === 'live' ? 'text-text-1' : 'text-text-3'}>
+            {pipeline.cameraDisplay}
           </span>
         </div>
 
@@ -159,7 +162,6 @@ export const TopBar: React.FC = () => {
 
         {/* Drawer button (below 1024px) & Settings Capsule */}
         <div className="flex items-center gap-0.5 bg-bg-2 border border-line-1 rounded-control p-0.5">
-          {/* Below 1024px intel drawer trigger */}
           <div className="lg:hidden">
             <IconButton
               icon={<PanelRight className="w-4 h-4" />}

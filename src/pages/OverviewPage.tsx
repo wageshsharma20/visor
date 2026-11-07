@@ -11,12 +11,12 @@ import {
 } from 'lucide-react';
 import { Card, CardHeader, StatusDot, Button } from '@/components/ui';
 import { useCameraStore } from '@/stores/cameraStore';
-import { useModelStore } from '@/stores/modelStore';
+import { usePipelineStatus } from '@/stores/pipelineStatus';
 
 export const OverviewPage: React.FC = () => {
   const navigate = useNavigate();
-  const { status: cameraStatus, mode } = useCameraStore();
-  const { activeModel, sourceLabel } = useModelStore();
+  const { status: cameraStatus } = useCameraStore();
+  const pipeline = usePipelineStatus();
 
   const isLive = cameraStatus === 'connected';
 
@@ -115,7 +115,7 @@ export const OverviewPage: React.FC = () => {
               <Radio className="w-4 h-4" />
             </div>
             <div className="text-body-strong text-text-1">
-              {isLive ? `Live Feed Active (${mode})` : 'Camera Feed Offline'}
+              {isLive ? 'Live Webcam Feed Active' : 'Camera Feed Offline'}
             </div>
             <div className="text-small text-text-3 max-w-xs mt-1">
               Click to inspect bounding overlays, inline telemetry, and camera HUD on the Live Monitor.
@@ -134,18 +134,36 @@ export const OverviewPage: React.FC = () => {
             <div>
               <div className="text-label text-text-2 mb-1.5">Source Provider</div>
               <div className="p-2.5 rounded-control bg-bg-3 border border-line-1 flex items-center justify-between text-data font-mono">
-                <span className="text-text-1">{sourceLabel}</span>
-                <StatusDot state={isLive ? 'live' : 'idle'} />
+                <span className={pipeline.source === 'none' ? 'text-text-3' : 'text-accent'}>
+                  {pipeline.sourceDisplay}
+                </span>
+                <StatusDot state={pipeline.camera === 'live' ? 'live' : 'idle'} />
               </div>
             </div>
 
             <div>
               <div className="text-label text-text-2 mb-1.5">Model Runtime</div>
               <div className="p-2.5 rounded-control bg-bg-3 border border-line-1 flex items-center justify-between text-data font-mono">
-                <span className="text-text-1">
-                  {activeModel ? `${activeModel.name} · ${activeModel.runtime}` : 'No model deployed'}
+                <span
+                  className={
+                    pipeline.model === 'running' && pipeline.simulated
+                      ? 'text-amber'
+                      : pipeline.model === 'running'
+                      ? 'text-accent'
+                      : 'text-text-3'
+                  }
+                >
+                  {pipeline.modelDisplay}
                 </span>
-                <StatusDot state={activeModel ? 'live' : 'idle'} />
+                <StatusDot
+                  state={
+                    pipeline.model === 'running' && pipeline.simulated
+                      ? 'warning'
+                      : pipeline.model === 'running'
+                      ? 'live'
+                      : 'idle'
+                  }
+                />
               </div>
             </div>
 

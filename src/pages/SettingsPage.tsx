@@ -75,7 +75,6 @@ export const SettingsPage: React.FC = () => {
             value={mode}
             onChange={(val) => setMode(val as 'webcam' | 'demo')}
             options={[
-              { label: 'Synthetic Demo Scene (Simulated 1080p)', value: 'demo' },
               { label: 'FaceTime HD Camera (Built-in)', value: 'webcam' },
             ]}
           />

@@ -8,7 +8,8 @@ export type CameraStatus =
   | 'error'
   | 'denied'
   | 'in_use'
-  | 'no_camera';
+  | 'no_camera'
+  | 'insecure_context';
 
 export interface CameraResolution {
   width: number;

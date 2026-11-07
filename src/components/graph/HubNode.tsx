@@ -3,7 +3,7 @@ import { Zap } from 'lucide-react';
 import { Port } from './Port';
 
 export interface HubNodeProps {
-  label?: string;
+  label?: React.ReactNode;
   active?: boolean;
   inPort?: string;
   outPort?: string;
@@ -51,7 +51,7 @@ export const HubNode: React.FC<HubNodeProps> = ({
         <button
           type="button"
           onClick={onClick}
-          aria-label={label || 'Hub Inference Node'}
+          aria-label={typeof label === 'string' ? label : 'Hub Inference Node'}
           className={`w-9 h-9 rounded-control bg-bg-2 border border-line-2 flex items-center justify-center transition-all duration-fast z-10 ${
             active
               ? 'text-text-1 hover:border-accent hover:shadow-glow-accent cursor-pointer'
@@ -63,17 +63,17 @@ export const HubNode: React.FC<HubNodeProps> = ({
 
         {/* In vertical mode, position label beside the hub square so the hub stays centered on the wire */}
         {label && isVertical && (
-          <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 font-mono text-data text-text-3 whitespace-nowrap">
+          <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 font-mono text-data text-text-3 whitespace-nowrap">
             {label}
-          </span>
+          </div>
         )}
       </div>
 
-      {/* In horizontal mode, position label strictly below the hub node */}
+      {/* In horizontal mode, position label strictly below the hub node without truncating */}
       {label && !isVertical && (
-        <span className="font-mono text-data text-text-3 mt-1.5 truncate max-w-[100px] text-center">
+        <div className="font-mono text-data text-text-3 mt-1.5 text-center leading-tight">
           {label}
-        </span>
+        </div>
       )}
     </div>
   );

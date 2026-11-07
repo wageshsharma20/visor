@@ -9,7 +9,6 @@ import {
   Card,
   CardHeader,
   StatusDot,
-  MetaChip,
   IconButton,
 } from '@/components/ui';
 
@@ -48,11 +47,7 @@ export const IntelContent: React.FC = () => {
           <div className="p-3 bg-bg-3 border border-line-1 rounded-control text-body text-text-3 leading-relaxed min-h-[64px] flex items-center justify-center text-center">
             No description model connected.
           </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <MetaChip icon={<Sparkle className="w-3 h-3 text-text-3" />}>simulated</MetaChip>
-            <MetaChip>0.0s latency</MetaChip>
-            <MetaChip>--:--:--</MetaChip>
-          </div>
+          {/* Meta-chip row hidden in unavailable state per requirement */}
         </div>
       </Card>
 

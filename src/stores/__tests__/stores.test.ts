@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useCameraStore } from '../cameraStore';
 import { useModelStore } from '../modelStore';
 import { useUiStore } from '../uiStore';
+import { usePipelineStatus } from '../pipelineStatus';
+import { renderHook, act } from '@testing-library/react';
 
-describe('Zustand Stores (Phase 2)', () => {
+describe('Zustand Stores & Pipeline Status', () => {
   beforeEach(() => {
     useCameraStore.getState().reset();
     useModelStore.getState().reset();
@@ -11,18 +13,18 @@ describe('Zustand Stores (Phase 2)', () => {
   });
 
   describe('cameraStore', () => {
-    it('initializes in idle demo mode with 1080p resolution', () => {
+    it('initializes in idle webcam mode with 1080p resolution', () => {
       const state = useCameraStore.getState();
-      expect(state.mode).toBe('demo');
+      expect(state.mode).toBe('webcam');
       expect(state.status).toBe('idle');
       expect(state.resolution).toEqual({ width: 1920, height: 1080 });
       expect(state.fps).toBe(0);
       expect(state.paused).toBe(false);
       expect(state.mirror).toBe(true);
+      expect(state.stream).toBeNull();
     });
 
     it('updates mode and status cleanly', () => {
-      useCameraStore.getState().setMode('webcam');
       useCameraStore.getState().setStatus('connected');
       useCameraStore.getState().setFps(30);
 
@@ -30,6 +32,16 @@ describe('Zustand Stores (Phase 2)', () => {
       expect(state.mode).toBe('webcam');
       expect(state.status).toBe('connected');
       expect(state.fps).toBe(30);
+    });
+
+    it('stops stream cleanly on stopWebcamAction', () => {
+      useCameraStore.getState().setStatus('connected');
+      useCameraStore.getState().stopWebcamAction();
+
+      const state = useCameraStore.getState();
+      expect(state.status).toBe('idle');
+      expect(state.stream).toBeNull();
+      expect(state.fps).toBe(0);
     });
   });
 
@@ -46,7 +58,7 @@ describe('Zustand Stores (Phase 2)', () => {
       useModelStore.getState().setActiveModel({
         id: 'test-model',
         name: 'yolov8n',
-        version: '1.0.0',
+        version: '1.2.0',
         runtime: 'ONNX Runtime',
         taskType: 'Object detection',
         resolution: 640,
@@ -60,6 +72,55 @@ describe('Zustand Stores (Phase 2)', () => {
       const state = useModelStore.getState();
       expect(state.activeModel?.name).toBe('yolov8n');
       expect(state.status).toBe('running');
+    });
+  });
+
+  describe('pipelineStatus derived selector', () => {
+    it('reports offline and NO MODEL in initial state', () => {
+      const { result } = renderHook(() => usePipelineStatus());
+      expect(result.current.camera).toBe('off');
+      expect(result.current.source).toBe('none');
+      expect(result.current.model).toBe('none');
+      expect(result.current.cameraDisplay).toBe('CAM_01 · offline');
+      expect(result.current.sourceDisplay).toBe('NO SOURCE');
+      expect(result.current.modelDisplay).toBe('NO MODEL');
+    });
+
+    it('reports amber SIMULATED model display when simulated model is deployed', () => {
+      act(() => {
+        useModelStore.getState().setActiveModel({
+          id: 'yolov8n-custom',
+          name: 'yolov8n',
+          version: '1.2.0',
+          runtime: 'ONNX Runtime',
+          taskType: 'Object detection',
+          resolution: 640,
+          confidenceThreshold: 0.5,
+          iouThreshold: 0.45,
+          classes: ['person'],
+          watchlist: [],
+        });
+        useModelStore.getState().setStatus('running');
+        useModelStore.getState().setIsSimulated(true);
+      });
+
+      const { result } = renderHook(() => usePipelineStatus());
+      expect(result.current.model).toBe('running');
+      expect(result.current.simulated).toBe(true);
+      expect(result.current.modelDisplay).toBe('yolov8n@1.2.0 · SIMULATED');
+    });
+
+    it('reports CAM_01 with resolution when camera is connected', () => {
+      act(() => {
+        useCameraStore.getState().setStatus('connected');
+        useCameraStore.getState().setResolution({ width: 1920, height: 1080 });
+      });
+
+      const { result } = renderHook(() => usePipelineStatus());
+      expect(result.current.camera).toBe('live');
+      expect(result.current.source).toBe('webcam');
+      expect(result.current.cameraDisplay).toBe('CAM_01 · 1920×1080');
+      expect(result.current.sourceDisplay).toBe('WEBCAM');
     });
   });
 

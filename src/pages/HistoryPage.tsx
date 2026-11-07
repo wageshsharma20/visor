@@ -23,6 +23,7 @@ export const HistoryPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const totalRows = 0;
 
   return (
     <div className="flex flex-col gap-5 max-w-6xl mx-auto w-full pb-16 sm:pb-8">
@@ -36,14 +37,17 @@ export const HistoryPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size={32}
-            icon={<Download className="w-3.5 h-3.5" />}
-            onClick={() => window.alert('Exporting detections: 0 records found.')}
-          >
-            Export CSV
-          </Button>
+          {/* Export CSV is hidden when there are 0 rows per requirement */}
+          {totalRows > 0 && (
+            <Button
+              variant="secondary"
+              size={32}
+              icon={<Download className="w-3.5 h-3.5" />}
+              onClick={() => {}}
+            >
+              Export CSV
+            </Button>
+          )}
 
           <Button
             variant="danger"

@@ -89,6 +89,9 @@ export function useKeyboardNav() {
         } else if (key === 't') {
           e.preventDefault();
           setShowTrails(!showTrails);
+        } else if (key === 'f') {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent('visor:toggle-fullscreen'));
         } else if (e.code === 'Space') {
           e.preventDefault();
           setPaused(!paused);
