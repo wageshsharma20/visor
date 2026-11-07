@@ -160,20 +160,18 @@ export const FloatingToolbar: React.FC = () => {
         {/* Divider */}
         <div className="w-[1px] h-4 bg-line-2 shrink-0" />
 
-        {/* GROUP 3: Compact Threshold Slider (120px) with fixed-width mono label */}
-        <div className="flex items-center gap-2 shrink-0 pl-1 pr-1">
+        {/* GROUP 3: Compact Threshold Slider (track 120px + 8px gap + 36px readout = 164px) */}
+        <div className="flex items-center gap-2 shrink-0">
           <Tooltip content={`Confidence threshold: ${(threshold * 100).toFixed(0)}%`}>
-            <div className="w-[120px] shrink-0">
-              <Slider
-                variant="compact"
-                surface="card"
-                min={0.3}
-                max={0.95}
-                step={0.05}
-                value={threshold}
-                onChange={setThreshold}
-              />
-            </div>
+            <Slider
+              variant="compact"
+              surface="card"
+              min={0.3}
+              max={0.95}
+              step={0.05}
+              value={threshold}
+              onChange={setThreshold}
+            />
           </Tooltip>
         </div>
 

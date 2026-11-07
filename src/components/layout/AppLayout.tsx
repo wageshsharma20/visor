@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { TopBar } from './TopBar';
 import { IconRail } from './IconRail';
 import { useKeyboardNav } from '@/lib/useKeyboardNav';
+import { useDetectionPipeline } from '@/lib/useDetectionPipeline';
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ export interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   useKeyboardNav();
+  useDetectionPipeline();
   const location = useLocation();
   const isLivePage = location.pathname === '/live';
 

@@ -93,7 +93,8 @@ export const Slider: React.FC<SliderProps> = ({
   if (variant === 'compact') {
     return (
       <div
-        className={`inline-flex items-center gap-2 select-none ${
+        data-slider-compact-root
+        className={`inline-flex items-center gap-2 select-none w-[164px] shrink-0 ${
           disabled ? 'opacity-40 pointer-events-none' : ''
         } ${className}`}
       >
@@ -108,7 +109,7 @@ export const Slider: React.FC<SliderProps> = ({
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onKeyDown={handleKeyDown}
-          className={`relative w-[120px] h-5 ${trackBg} rounded-full cursor-pointer overflow-hidden focus-visible:outline-none focus-visible:shadow-focus`}
+          className={`relative w-[120px] h-5 ${trackBg} rounded-full cursor-pointer overflow-hidden focus-visible:outline-none focus-visible:shadow-focus shrink-0`}
         >
           {/* 1. Rail: left 2px, width: calc(100% - 4px - 16px) = calc(100% - 20px) */}
           <div
@@ -140,7 +141,10 @@ export const Slider: React.FC<SliderProps> = ({
             </div>
           </div>
         </div>
-        <span className="font-mono text-data text-text-2 w-10 text-right shrink-0">
+        <span
+          data-slider-readout
+          className="font-mono text-data text-text-2 w-[36px] text-right shrink-0"
+        >
           {formatValue(value)}
         </span>
       </div>

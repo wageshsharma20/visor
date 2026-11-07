@@ -47,7 +47,7 @@ export const TimelineCard: React.FC = () => {
         {/* Center Empty State Message */}
         <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
           <div className="px-3 py-1.5 rounded-chip bg-bg-2 border border-line-2 text-small text-text-3 shadow-float">
-            No detections recorded yet · Start camera or demo scene
+            No detections recorded yet · Start the camera
           </div>
         </div>
 
