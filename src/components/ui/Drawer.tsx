@@ -88,8 +88,8 @@ export const Drawer: React.FC<DrawerProps> = ({
 
   const sideClasses =
     side === 'left'
-      ? 'left-0 rounded-r-[6px] rounded-l-none border-r border-line-1 animate-in slide-in-from-left duration-slow'
-      : 'right-0 rounded-l-[6px] rounded-r-none border-l border-line-1 animate-in slide-in-from-right duration-slow';
+      ? 'left-0 rounded-r-panel rounded-l-none border-r border-line-2 animate-in slide-in-from-left duration-slow'
+      : 'right-0 rounded-l-panel rounded-r-none border-l border-line-2 animate-in slide-in-from-right duration-slow';
 
   return (
     <Portal>
@@ -108,18 +108,18 @@ export const Drawer: React.FC<DrawerProps> = ({
           aria-modal="true"
           aria-label={title}
           tabIndex={-1}
-          className={`fixed inset-y-0 ${sideClasses} ${width} max-w-[90vw] bg-bg-1 shadow-floating flex flex-col z-10 outline-none`}
+          className={`fixed inset-y-0 ${sideClasses} ${width} max-w-[90vw] bg-bg-2 shadow-float flex flex-col z-10 outline-none`}
         >
           {/* Header */}
-          <div className="h-[44px] min-h-[44px] px-4 flex items-center justify-between border-b border-line-1 bg-bg-1 select-none">
-            <span className="font-mono text-section uppercase tracking-wider text-text-3">
+          <div className="h-11 min-h-[44px] px-4 flex items-center justify-between border-b border-line-1 select-none">
+            <span className="font-sans text-body-strong text-text-1">
               {title}
             </span>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close drawer"
-              className="w-7 h-7 flex items-center justify-center rounded-[4px] text-text-3 hover:text-text-1 hover:bg-bg-3 transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+              className="w-8 h-8 flex items-center justify-center rounded-control text-text-3 hover:text-text-1 hover:bg-bg-3 transition-colors duration-fast focus-visible:outline-none focus-visible:shadow-focus"
             >
               <X className="w-4 h-4" />
             </button>
@@ -132,7 +132,7 @@ export const Drawer: React.FC<DrawerProps> = ({
 
           {/* Footer */}
           {footer && (
-            <div className="h-[44px] min-h-[44px] px-4 bg-bg-2 border-t border-line-1 flex items-center justify-end gap-2">
+            <div className="h-11 min-h-[44px] px-4 bg-bg-3 border-t border-line-1 flex items-center justify-end gap-2">
               {footer}
             </div>
           )}

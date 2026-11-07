@@ -1,32 +1,57 @@
+/* VISOR design tokens — DESIGN.md v2 "Graphite Node".
+   This is the ONLY file allowed to contain raw color values. */
 :root {
   /* Surfaces */
-  --bg-0: #07090B;
-  --bg-1: #0B0E12;
-  --bg-2: #10141A;
-  --bg-3: #161B22;
+  --bg-0: #070707;
+  --bg-1: #0A0A0A;
+  --bg-2: #131313;
+  --bg-3: #1C1C1C;
+  --bg-4: #262626;
+  --line-1: #1F1F1F;
+  --line-2: #2B2B2B;
+  --grid-dot: #171717;
 
-  /* Hairlines and Dividers */
-  --line-1: #1C232B;
-  --line-2: #28313B;
+  /* Text & fills */
+  --text-1: #EDEDED;
+  --text-2: #9A9A9A;
+  --text-3: #666666;
+  --icon-dim: #5C5C5C;
+  --fill-white: #EFEFEF;
+  --on-accent: #08130A;
+  --on-white: #111111;
 
-  /* Text Colors */
-  --text-1: #E6EDF3;
-  --text-2: #97A3AF;
-  --text-3: #5C6773;
+  /* Accent & status */
+  --accent: #5FB84A;
+  --accent-bright: #8BE07A;
+  --accent-dim: rgba(95, 184, 74, 0.14);
+  --steel: #92ADB8;
+  --amber: #E8B04B;
+  --red: #EF5B5B;
 
-  /* Accents & Status */
-  --cyan: #2BD9F0;
-  --cyan-dim: rgba(43, 217, 240, 0.14);
-  --amber: #F5A524;
-  --green: #3DD68C;
-  --red: #F2555A;
+  /* Detection classes (box strokes + swatches only) */
+  --class-person: #8BE07A;
+  --class-vehicle: #92ADB8;
+  --class-bag: #C8B6E8;
+  --class-animal: #E3B98A;
+  --class-other: #9A9A9A;
 
-  /* Detection Classes */
-  --class-person: #2BD9F0;
-  --class-vehicle: #7FA8FF;
-  --class-bag: #B8A9D9;
-  --class-animal: #8FD3A8;
-  --class-other: #97A3AF;
+  /* HUD chip backdrop */
+  --hud-chip: rgba(7, 7, 7, 0.6);
+
+  /* Radius */
+  --r-chip: 6px;
+  --r-control: 8px;
+  --r-card: 12px;
+  --r-panel: 14px;
+
+  /* Elevation */
+  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --glow-accent: 0 0 0 1px rgba(139, 224, 122, 0.4), 0 0 14px rgba(139, 224, 122, 0.25);
+  --focus-ring: 0 0 0 2px var(--bg-1), 0 0 0 3px var(--accent);
+
+  /* Canvas dot grid */
+  --canvas-grid: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+  --canvas-grid-size: 20px 20px;
 
   /* Motion */
   --dur-fast: 120ms;
@@ -34,16 +59,11 @@
   --dur-slow: 240ms;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  /* Shadows (Floating layers only: menus, dialogs, tooltips) */
-  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.5);
-
-  /* Focus Ring */
-  --focus-ring: 0 0 0 1px var(--bg-0), 0 0 0 2px var(--cyan);
-
-  /* Z-Index Hierarchy */
+  /* Z-index */
   --z-base: 0;
   --z-overlay: 10;
   --z-sticky: 20;
+  --z-dock: 30;
   --z-drawer: 40;
   --z-dialog: 50;
   --z-toast: 60;

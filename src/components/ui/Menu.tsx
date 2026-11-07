@@ -34,14 +34,13 @@ export const Menu: React.FC<MenuProps> = ({
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const gap = 4;
-    const menuWidth = 180; // approximate or min-w
+    const menuWidth = 190;
 
     let left = rect.left;
     if (align === 'right') {
       left = rect.right - menuWidth;
     }
 
-    // Clamp
     left = Math.max(8, Math.min(left, window.innerWidth - menuWidth - 8));
     const top = rect.bottom + gap;
 
@@ -113,7 +112,7 @@ export const Menu: React.FC<MenuProps> = ({
           <div
             ref={menuRef}
             role="menu"
-            className={`fixed z-[70] min-w-[180px] bg-bg-1 border border-line-1 rounded-[4px] shadow-floating py-1 select-none animate-in fade-in duration-fast ${className}`}
+            className={`fixed z-[70] min-w-[190px] bg-bg-2 border border-line-2 rounded-card shadow-float py-1.5 select-none animate-in fade-in duration-fast ${className}`}
             style={{
               top: `${coords.top}px`,
               left: `${coords.left}px`,
@@ -121,7 +120,7 @@ export const Menu: React.FC<MenuProps> = ({
           >
             {items.map((item, index) => {
               if (item.divider) {
-                return <div key={`div-${index}`} className="h-[1px] bg-line-1 my-1" />;
+                return <div key={`div-${index}`} className="h-[1px] bg-line-1 my-1 mx-2" />;
               }
 
               return (
@@ -135,7 +134,7 @@ export const Menu: React.FC<MenuProps> = ({
                     setIsOpen(false);
                     triggerRef.current?.focus();
                   }}
-                  className={`w-full h-7 px-3 flex items-center justify-between text-body text-left transition-colors duration-fast disabled:opacity-40 disabled:cursor-not-allowed ${
+                  className={`w-[calc(100%-12px)] h-8 px-2.5 mx-1.5 flex items-center justify-between text-body text-left rounded-control transition-colors duration-fast disabled:opacity-40 disabled:cursor-not-allowed ${
                     item.danger
                       ? 'text-red hover:bg-red/10'
                       : 'text-text-1 hover:bg-bg-3'
@@ -150,7 +149,7 @@ export const Menu: React.FC<MenuProps> = ({
                     <span>{item.label}</span>
                   </div>
                   {item.shortcut && (
-                    <span className="font-mono text-hud text-text-3 uppercase">
+                    <span className="font-mono text-data text-text-3 uppercase">
                       {item.shortcut}
                     </span>
                   )}

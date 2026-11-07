@@ -28,7 +28,6 @@ export const Dialog: React.FC<DialogProps> = ({
     if (open) {
       previouslyFocusedElement.current = document.activeElement as HTMLElement;
 
-      // Focus the dialog container or first focusable element
       const timer = window.setTimeout(() => {
         if (!dialogRef.current) return;
         const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
@@ -48,7 +47,6 @@ export const Dialog: React.FC<DialogProps> = ({
           return;
         }
 
-        // Focus trap
         if (e.key === 'Tab' && dialogRef.current) {
           const focusable = Array.from(
             dialogRef.current.querySelectorAll<HTMLElement>(
@@ -106,10 +104,10 @@ export const Dialog: React.FC<DialogProps> = ({
           aria-labelledby="dialog-title"
           aria-describedby={description ? 'dialog-description' : undefined}
           tabIndex={-1}
-          className={`relative w-full ${maxWidth} bg-bg-1 border border-line-1 rounded-[6px] shadow-floating flex flex-col overflow-hidden outline-none z-10 transition-transform duration-base`}
+          className={`relative w-full ${maxWidth} bg-bg-2 border border-line-2 rounded-panel shadow-float flex flex-col overflow-hidden outline-none z-10 transition-transform duration-base`}
         >
           {/* Header */}
-          <div className="h-[44px] px-4 flex items-center justify-between border-b border-line-1 bg-bg-1 select-none">
+          <div className="h-11 px-4 flex items-center justify-between border-b border-line-1 select-none">
             <h2 id="dialog-title" className="font-sans text-body-strong text-text-1">
               {title}
             </h2>
@@ -117,7 +115,7 @@ export const Dialog: React.FC<DialogProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close dialog"
-              className="w-7 h-7 flex items-center justify-center rounded-[4px] text-text-3 hover:text-text-1 hover:bg-bg-3 transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+              className="w-8 h-8 flex items-center justify-center rounded-control text-text-3 hover:text-text-1 hover:bg-bg-3 transition-colors duration-fast focus-visible:outline-none focus-visible:shadow-focus"
             >
               <X className="w-4 h-4" />
             </button>
@@ -135,7 +133,7 @@ export const Dialog: React.FC<DialogProps> = ({
 
           {/* Footer */}
           {footer && (
-            <div className="h-[44px] px-4 bg-bg-2 border-t border-line-1 flex items-center justify-end gap-2">
+            <div className="h-11 px-4 bg-bg-3 border-t border-line-1 flex items-center justify-end gap-2">
               {footer}
             </div>
           )}

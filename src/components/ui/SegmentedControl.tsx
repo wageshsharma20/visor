@@ -10,7 +10,6 @@ export interface SegmentedControlProps<T extends string> {
   options: SegmentOption<T>[];
   value: T;
   onChange: (value: T) => void;
-  size?: 28 | 32;
   disabled?: boolean;
   className?: string;
 }
@@ -19,12 +18,9 @@ export function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
-  size = 28,
   disabled = false,
   className = '',
 }: SegmentedControlProps<T>) {
-  const heightClass = size === 28 ? 'h-[28px]' : 'h-[32px]';
-
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (disabled) return;
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -41,7 +37,7 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       role="radiogroup"
-      className={`inline-flex items-center p-0.5 bg-bg-2 border border-line-1 rounded-[4px] select-none ${heightClass} ${
+      className={`inline-flex items-center p-1 bg-bg-3 rounded-control select-none h-8 ${
         disabled ? 'opacity-40 pointer-events-none' : ''
       } ${className}`}
     >
@@ -57,10 +53,10 @@ export function SegmentedControl<T extends string>({
             tabIndex={isSelected ? 0 : -1}
             onClick={() => onChange(option.value)}
             onKeyDown={(e) => handleKeyDown(e, idx)}
-            className={`h-full px-2.5 flex items-center justify-center gap-1.5 rounded-[2px] text-small font-normal transition-colors duration-fast focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cyan ${
+            className={`h-full px-3 flex items-center justify-center gap-1.5 rounded-control text-small transition-colors duration-fast focus-visible:outline-none focus-visible:shadow-focus ${
               isSelected
-                ? 'bg-bg-1 text-text-1 font-medium border border-line-2 shadow-sm'
-                : 'text-text-2 hover:text-text-1 hover:bg-bg-3 border border-transparent'
+                ? 'bg-fill-white text-on-white font-body-strong'
+                : 'text-text-2 hover:text-text-1'
             }`}
           >
             {option.icon && (

@@ -20,7 +20,7 @@ VISOR is a frontend for operating a real-time visual detection model. A user con
 | `/analytics` | Analytics | Detections per minute (bar), class distribution (horizontal bars), confidence histogram (10 bins), all hand-drawn SVG from the store |
 | `/settings` | Settings | Camera device, mirror webcam, overlay defaults, confidence threshold default, history cap, watchlist classes, reset all |
 
-Sidebar order: Live Monitor, Overview, Models, History, Analytics, then Settings pinned at the bottom.
+Icon rail order (DESIGN.md §5): Live Monitor, Overview, Models, History, Analytics, Settings. Exit/collapse sits at the bottom.
 
 ## 3. Top bar (44px)
 
@@ -137,8 +137,9 @@ src/
   components/
     ui/                  Button, IconButton, Badge, Pill, Panel, PanelHeader, Slider, Switch,
                          Select, Input, Tooltip, Menu, Drawer, Dialog, Toast, EmptyState, Kbd
-    layout/              AppLayout, TopBar, Sidebar
-    live/                LiveMonitor, ViewportToolbar, CameraViewport, VideoLayer,
+    layout/              AppLayout, TopBar, IconRail, Canvas (dot grid)
+    graph/               Wire, Port, HubNode, NodeCard (DESIGN.md §4)
+    live/                LiveMonitor, PipelineStrip, FloatingToolbar, CameraViewport, VideoLayer,
                          DetectionOverlay, BoundingBox, BoxLabel, TrackTrail, HudLayer,
                          InlineDetailCard, ViewportState
     intel/               IntelPanel, CurrentDetection, AttributeGrid, AiDescription, RecentDetections
@@ -165,7 +166,7 @@ src/
 
 ## 6. Camera and sources
 
-**Modes** (segmented control in the viewport toolbar): `Webcam` · `Demo scene`.
+**Modes** (segmented control in the floating toolbar, DESIGN.md §6.7): `Webcam` · `Demo scene`.
 
 **Webcam**
 - `getUserMedia({ video: { width: { ideal: 1920 }, height: { ideal: 1080 } } })`. Device picker in Settings via `enumerateDevices`.
@@ -179,7 +180,7 @@ src/
 1. **Recorded** (preferred): if `public/demo/scene.mp4` and `public/demo/scene.tracks.json` exist, play the video looped and muted, and emit the tracks entry closest to `video.currentTime`. The tracks file is produced offline by `tools/make_demo_tracks.py` (real YOLO + ByteTrack output), so boxes match real people and cars.
 2. **Synthetic** (fallback, always works): a `<canvas>` renders a stylized scene at 1280×720 and 30fps. It shows a dark perspective floor grid, 3–7 moving "people" (simple capsule silhouettes in muted grey) and occasional "vehicles" (rounded rects) crossing a road band at the top, and now and then a "bag" left on the floor. The same simulation state produces both the drawing and the detections, so boxes always match. Add ±1.5% bbox jitter and confidence noise for realism. Objects enter and leave at the edges and sometimes get occluded, which produces lost/reacquired events. Label the HUD `SIMULATED · SYNTHETIC SCENE`.
 
-**Controls (viewport toolbar, left → right):** Start/Stop · Pause/Resume (`Space`) · mode segmented control · divider · Boxes toggle (`B`) · Labels toggle (`L`) · Trails toggle (`T`) · confidence threshold slider (0.30–0.95, step 0.05, default 0.50) · spacer · live track count · snapshot (downloads PNG of video + overlay) · fullscreen (`F`, on the viewport element only, keeps overlay and HUD).
+**Controls (floating toolbar under the viewport, left → right):** Start/Stop · Pause/Resume (`Space`) · mode segmented control · divider · Boxes toggle (`B`) · Labels toggle (`L`) · Trails toggle (`T`) · divider · confidence threshold pill slider (0.30–0.95, step 0.05, default 0.50) · divider · snapshot (downloads PNG of video + overlay) · fullscreen (`F`, on the viewport element only, keeps overlay and HUD).
 
 ## 7. Selection model
 
@@ -206,17 +207,17 @@ src/
 
 ## 10. Model Management (`/models`) — clearly a simulation
 
-A persistent amber banner sits at the top: "Deployment is simulated in this build. No model is executed. Connect a WebSocket endpoint to stream real detections."
+A persistent amber meta-chip sits in the top bar ("Simulated deployment"), and a dismissible amber notice card on the canvas reads: "Deployment is simulated in this build. No model is executed. Connect a WebSocket endpoint to stream real detections."
 
-Two-column layout (single column < 1024px):
-- **Left — Configure**
+The page is a **node canvas** (DESIGN.md §9): Source node, Model Configuration node and Thresholds node wire into the ⚡ hub, which wires into the Output Preview node. The Endpoint node sits below. The fields below are distributed across those nodes; below 1024px the nodes stack vertically.
+- **Configure (Model Configuration, Thresholds, Endpoint nodes)**
   - Upload dropzone: accepts `.onnx .pt .tflite .engine .zip`, max 500 MB. Shows name, size, type, and a simulated upload progress bar with cancel. Validation errors are inline (wrong type, too large, empty file).
   - Form: name (required), version (semver), description, task type (Object detection / Segmentation / Pose / Vision-language), runtime (ONNX Runtime / TensorRT / PyTorch / TFLite), input resolution (640 / 960 / 1280), confidence threshold, NMS IoU, class list (comma-separated, prefilled with COCO subset), watchlist classes.
   - Endpoint: WebSocket URL (`wss://…`) with a [Test connection] button. It really tries to connect with a 5s timeout and reports success or the actual failure. If it connects, a "Use as detection source" switch makes `websocketSource` the active source. The message format expected is `DetectionFrame` JSON, documented in a collapsible code block on the page.
   - Validation is blur-first, errors clear instantly when fixed, and Deploy is enabled only when the form is valid.
-- **Right — Deployment**
+- **Deployment (⚡ hub + Deployment drawer + Output Preview node)**
   - State machine: `not_configured → ready → deploying → running ⇄ stopped`, plus `failed` (the deploying step has a "Simulate failure" debug checkbox so the state can be shown on demand).
-  - Card shows state pill, model name@version, runtime, resolution, uptime, and simulated throughput.
+  - The hub's tooltip and the drawer show state pill, model name@version, runtime, resolution, uptime, and simulated throughput.
   - Actions per state: Deploy / Stop / Restart / Retry. Deploying shows a 4-step checklist (Validate package → Allocate runtime → Load weights → Warm up) progressing over ~4s.
   - "Running (simulated)" makes the simulated source use this model's name, class list and threshold, so the Live Monitor chip shows `yolov8n@1.2.0 · SIMULATED`.
 - Config persists to `localStorage` (wrapped in try/catch).

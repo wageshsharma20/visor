@@ -35,41 +35,41 @@ describe('UI Primitives Unit Tests', () => {
     document.body.innerHTML = '<div id="portal-root"></div>';
   });
 
-  it('renders Button with variants and sizes without radius > 6px', () => {
+  it('renders Button with variants and sizes matching v2 tokens', () => {
     const { getByRole, rerender } = render(
-      <Button variant="primary" size={28}>
+      <Button variant="primary" size={32}>
         Deploy
       </Button>
     );
     const btn = getByRole('button');
     expect(btn).toHaveTextContent('Deploy');
-    expect(btn.className).toContain('rounded-[4px]');
-    expect(btn.className).toContain('bg-cyan');
+    expect(btn.className).toContain('rounded-control');
+    expect(btn.className).toContain('bg-fill-white');
 
     rerender(
-      <Button variant="danger" size={32}>
+      <Button variant="danger" size={36}>
         Delete
       </Button>
     );
-    expect(btn.className).toContain('h-[32px]');
+    expect(btn.className).toContain('h-9');
     expect(btn.className).toContain('text-red');
   });
 
-  it('renders Pill with 2px radius and correct status styles', () => {
+  it('renders Pill with rounded-full and correct status styles', () => {
     const { container, rerender } = render(<Pill variant="visible">VISIBLE</Pill>);
     const pill = container.firstChild as HTMLElement;
-    expect(pill.className).toContain('rounded-[2px]');
-    expect(pill.className).toContain('h-[18px]');
+    expect(pill.className).toContain('rounded-full');
+    expect(pill.className).toContain('h-5');
     expect(pill).toHaveTextContent('VISIBLE');
 
     rerender(<Pill variant="flagged">FLAGGED</Pill>);
     expect(pill.className).toContain('text-amber');
   });
 
-  it('renders Badge with 2px radius', () => {
-    const { container } = render(<Badge variant="cyan">3 NEW</Badge>);
+  it('renders Badge with rounded-chip radius', () => {
+    const { container } = render(<Badge variant="accent">3 NEW</Badge>);
     const badge = container.firstChild as HTMLElement;
-    expect(badge.className).toContain('rounded-[2px]');
+    expect(badge.className).toContain('rounded-chip');
     expect(badge).toHaveTextContent('3 NEW');
   });
 
@@ -228,10 +228,10 @@ describe('UI Primitives Unit Tests', () => {
     expect(screen.getByText('Start Demo')).toBeInTheDocument();
   });
 
-  it('Kbd renders with 2px radius and monospace styling', () => {
+  it('Kbd renders with rounded-chip radius and monospace styling', () => {
     const { container } = render(<Kbd>ESC</Kbd>);
     const kbd = container.firstChild as HTMLElement;
-    expect(kbd.className).toContain('rounded-[2px]');
+    expect(kbd.className).toContain('rounded-chip');
     expect(kbd.className).toContain('font-mono');
     expect(kbd).toHaveTextContent('ESC');
   });

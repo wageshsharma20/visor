@@ -16,55 +16,54 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color: var(--bg-0);
+    background-color: var(--bg-1);
     color: var(--text-1);
-    font-family: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter Variable', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 13px;
-    line-height: 20px;
+    line-height: 18px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   /* Monospace typography defaults */
   code, kbd, samp, pre, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
   }
 
-  /* Selection */
+  /* Selection in accent-dim */
   ::selection {
-    background-color: var(--cyan-dim);
+    background-color: var(--accent-dim);
     color: var(--text-1);
   }
 
   /* Global dark scrollbars */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--bg-1);
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: var(--bg-2);
-    border-radius: 4px;
-    border: 2px solid var(--bg-1);
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
     background: var(--bg-3);
   }
 
-  /* Focus ring for keyboard accessibility */
+  ::-webkit-scrollbar-thumb {
+    background: var(--bg-4);
+    border-radius: var(--r-chip);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--bg-2);
+  }
+
+  /* Focus ring per DESIGN.md v2 */
   :focus-visible {
     outline: none !important;
-    box-shadow: 0 0 0 1px var(--bg-0), 0 0 0 2px var(--cyan) !important;
+    box-shadow: var(--focus-ring) !important;
   }
 }
 
-/* Reduced motion support per DESIGN.md §9 */
+/* Reduced motion support per DESIGN.md §10 */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation: none !important;
@@ -74,7 +73,7 @@
   }
 }
 
-/* Shimmer animation keyframes for skeletons */
+/* Shimmer animation keyframes for skeletons (bg-3 to bg-4) */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -87,10 +86,28 @@
 .animate-shimmer {
   background: linear-gradient(
     90deg,
-    var(--bg-2) 25%,
-    var(--bg-3) 50%,
-    var(--bg-2) 75%
+    var(--bg-3) 25%,
+    var(--bg-4) 50%,
+    var(--bg-3) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s infinite linear;
+}
+
+/* Traveling pulse animation for wires */
+@keyframes wire-pulse {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
 }

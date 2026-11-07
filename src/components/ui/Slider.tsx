@@ -1,24 +1,30 @@
 import React, { useRef, useCallback } from 'react';
 
 export interface SliderProps {
+  variant?: 'default' | 'compact';
   min?: number;
   max?: number;
   step?: number;
   value: number;
   onChange: (value: number) => void;
   label?: string;
+  minLabel?: string;
+  maxLabel?: string;
   formatValue?: (val: number) => string;
   disabled?: boolean;
   className?: string;
 }
 
 export const Slider: React.FC<SliderProps> = ({
+  variant = 'default',
   min = 0,
   max = 1,
   step = 0.05,
   value,
   onChange,
   label,
+  minLabel,
+  maxLabel,
   formatValue = (v) => `${(v * 100).toFixed(0)}%`,
   disabled = false,
   className = '',
@@ -73,13 +79,51 @@ export const Slider: React.FC<SliderProps> = ({
     }
   };
 
-  return (
-    <div className={`flex items-center gap-3 select-none ${disabled ? 'opacity-40' : ''} ${className}`}>
-      {label && (
-        <span className="font-mono text-section uppercase text-text-3 shrink-0">
-          {label}
+  if (variant === 'compact') {
+    return (
+      <div
+        className={`inline-flex items-center gap-2 select-none ${
+          disabled ? 'opacity-40 pointer-events-none' : ''
+        } ${className}`}
+      >
+        <div
+          ref={trackRef}
+          role="slider"
+          tabIndex={disabled ? -1 : 0}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={value}
+          aria-label={label || 'Threshold'}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onKeyDown={handleKeyDown}
+          className="relative w-[120px] h-5 bg-bg-3 rounded-full cursor-pointer overflow-hidden p-0.5 focus-visible:outline-none focus-visible:shadow-focus"
+        >
+          {/* White fill pill */}
+          <div
+            className="h-full bg-fill-white rounded-full transition-[width] duration-fast relative flex items-center justify-end"
+            style={{ width: `${Math.max(12, percentage)}%` }}
+          >
+            {/* Dark thumb inside fill */}
+            <div className="w-3.5 h-3.5 rounded-full bg-bg-4 border border-line-2 shrink-0 mr-0.5" />
+          </div>
+        </div>
+        <span className="font-mono text-data text-text-2 w-10 text-right shrink-0">
+          {formatValue(value)}
         </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex flex-col gap-1.5 w-full select-none ${disabled ? 'opacity-40' : ''} ${className}`}>
+      {label && (
+        <div className="flex items-center justify-between text-label">
+          <span className="text-text-2">{label}</span>
+          <span className="font-mono text-data text-text-1">{formatValue(value)}</span>
+        </div>
       )}
+
       <div
         ref={trackRef}
         role="slider"
@@ -87,31 +131,25 @@ export const Slider: React.FC<SliderProps> = ({
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
-        aria-label={label || 'Confidence threshold'}
+        aria-label={label || 'Threshold'}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onKeyDown={handleKeyDown}
-        className="relative flex-1 h-6 flex items-center cursor-pointer outline-none group focus-visible:ring-1 focus-visible:ring-cyan rounded-[2px]"
+        className="relative w-full h-7 bg-bg-3 rounded-full cursor-pointer flex items-center justify-between px-2.5 overflow-hidden focus-visible:outline-none focus-visible:shadow-focus"
       >
-        {/* Track background */}
-        <div className="w-full h-[2px] bg-line-2 relative overflow-hidden rounded-[1px]">
-          {/* Active fill */}
-          <div
-            className="h-full bg-cyan transition-[width] duration-fast"
-            style={{ width: `${percentage}%` }}
-          />
-        </div>
+        {/* Background Min/Max labels */}
+        {minLabel && <span className="text-small text-text-3 z-10 pointer-events-none">{minLabel}</span>}
+        {maxLabel && <span className="text-small text-text-3 z-10 pointer-events-none">{maxLabel}</span>}
 
-        {/* 10px square thumb with 2px radius per DESIGN.md §8 */}
+        {/* White fill pill */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-[10px] h-[10px] bg-cyan border border-bg-0 rounded-[2px] shadow-sm transition-transform duration-fast group-hover:scale-110"
-          style={{ left: `calc(${percentage}% - 5px)` }}
-        />
+          className="absolute inset-y-1 left-1 bg-fill-white rounded-full transition-[width] duration-fast flex items-center justify-end pr-0.5 pointer-events-none"
+          style={{ width: `calc(${percentage}% - 8px)` }}
+        >
+          {/* Dark thumb circle at end */}
+          <div className="w-5 h-5 rounded-full bg-bg-4 border border-line-2 shrink-0" />
+        </div>
       </div>
-
-      <span className="font-mono text-data text-text-1 w-12 text-right shrink-0">
-        {formatValue(value)}
-      </span>
     </div>
   );
 };

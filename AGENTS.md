@@ -22,11 +22,12 @@ VISOR is a frontend-only command center for a real-time visual detection model: 
 - Anything simulated is labeled as simulated in the UI. Never display "AI ACTIVE", "inference running" or similar unless a real model is producing the frames.
 
 ## Visual rules (summary; full detail in DESIGN.md)
-- Dark, dense, precise. Corners 2–6px max. 1px hairline borders do the structure. Do not use drop shadows on cards.
-- One accent (cyan). Amber means attention or warning. Green means healthy. Red means error. Do not use any other accent colors.
-- Maximum UI text size is 20px. Labels are 11px uppercase mono with tracking.
+- "Graphite Node" (DESIGN.md v2): near-black dot-grid canvas, floating `--bg-2` cards with 1px `--line-1` borders, small titled card headers with a status dot, green wires that show real data flow. Use the named radius tokens only (chip 6 / control 8 / card 12 / panel 14 / full). No shadows on regular cards.
+- One accent: signal green (`accent`, `accent-bright`, `accent-dim`). Amber means attention or warning. Red means error. `steel` is only for the active toolbar tool and the vehicle class. Primary buttons, active segments and slider fills are the white pill (`fill-white`). No cyan, blue or purple.
+- Type tokens only (DESIGN.md §2); max 20px, max weight 600. Inter for UI, JetBrains Mono for numbers/IDs/HUD. Uppercase only in HUD and status pills. Field labels sit above `--bg-3` fields.
 - Do not use gradients on surfaces, glassmorphism/backdrop-blur panels, purple, emoji, decorative illustrations, or marketing hero sections.
 - Animate only `transform` and `opacity`, 120–240ms. Respect `prefers-reduced-motion`.
+- `npm run audit:tokens` must pass before you report done.
 
 ## Definition of done for every task
 1. `npm run typecheck`, `npm run lint`, `npm run test` all pass with zero errors.

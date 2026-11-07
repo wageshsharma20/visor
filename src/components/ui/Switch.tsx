@@ -28,7 +28,7 @@ export const Switch: React.FC<SwitchProps> = ({
   return (
     <label
       htmlFor={id}
-      className={`inline-flex items-center gap-2 cursor-pointer select-none ${
+      className={`inline-flex items-center gap-2.5 cursor-pointer select-none ${
         disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''
       } ${className}`}
     >
@@ -40,16 +40,14 @@ export const Switch: React.FC<SwitchProps> = ({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         onKeyDown={handleKeyDown}
-        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-[4px] border transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan focus-visible:ring-offset-1 focus-visible:ring-offset-bg-0 ${
-          checked
-            ? 'bg-cyan-dim border-cyan/40'
-            : 'bg-bg-2 border-line-2 hover:border-line-1'
+        className={`relative inline-flex h-[18px] w-8 shrink-0 items-center rounded-full transition-colors duration-fast focus-visible:outline-none focus-visible:shadow-focus ${
+          checked ? 'bg-accent' : 'bg-bg-4 hover:brightness-110'
         }`}
       >
         <span
-          className={`pointer-events-none inline-block h-2.5 w-2.5 rounded-[2px] transition-transform duration-fast ${
+          className={`pointer-events-none inline-block h-3.5 w-3.5 rounded-full transition-transform duration-fast ${
             checked
-              ? 'translate-x-3.5 bg-cyan'
+              ? 'translate-x-4 bg-on-accent'
               : 'translate-x-0.5 bg-text-3'
           }`}
         />

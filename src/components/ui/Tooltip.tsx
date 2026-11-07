@@ -130,14 +130,14 @@ export const Tooltip: React.FC<TooltipProps> = ({
           <div
             ref={tooltipRef}
             role="tooltip"
-            className="fixed pointer-events-none z-[70] px-2 py-1 bg-bg-1 border border-line-1 rounded-[2px] shadow-floating flex items-center gap-1.5 text-hud text-text-1 font-mono transition-opacity duration-fast"
+            className="fixed pointer-events-none z-[70] px-2.5 py-1 bg-bg-2 border border-line-2 rounded-chip shadow-float flex items-center gap-1.5 text-data text-text-1 font-mono transition-opacity duration-fast"
             style={{
               top: `${coords.top}px`,
               left: `${coords.left}px`,
             }}
           >
             <span>{content}</span>
-            {shortcut && <Kbd className="text-[10px] px-1 py-0">{shortcut}</Kbd>}
+            {shortcut && <Kbd>{shortcut}</Kbd>}
           </div>
         </Portal>
       )}
