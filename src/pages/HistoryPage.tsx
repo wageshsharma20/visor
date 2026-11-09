@@ -46,18 +46,21 @@ export const HistoryPage: React.FC = () => {
             </Button>
           )}
 
-          <Button
-            variant="danger"
-            size={32}
-            icon={<Trash2 className="w-3.5 h-3.5" />}
-            onClick={() => setClearDialogOpen(true)}
-          >
-            Clear History
-          </Button>
+          {totalRows > 0 && (
+            <Button
+              variant="danger"
+              size={32}
+              icon={<Trash2 className="w-3.5 h-3.5" />}
+              onClick={() => setClearDialogOpen(true)}
+            >
+              Clear history
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter Bar: shown only once there are records to filter */}
+      {totalRows > 0 && (
       <Card>
         <div className="p-3 flex flex-wrap items-center gap-3">
           <div className="flex-1 min-w-[200px]">
@@ -95,6 +98,7 @@ export const HistoryPage: React.FC = () => {
           </Button>
         </div>
       </Card>
+      )}
 
       {/* History Table Card with Sticky Header per DESIGN.md §7 */}
       <Card className="flex flex-col overflow-hidden">
@@ -136,11 +140,10 @@ export const HistoryPage: React.FC = () => {
                       <FileSpreadsheet className="w-4 h-4" />
                     </div>
                     <div className="text-body-strong text-text-1 mb-1">
-                      No Records In Session
+                      No detections yet
                     </div>
                     <p className="text-small text-text-3 mb-4 leading-relaxed">
-                      Detections tracked by the vision engine will be cataloged with micro-thumbnails,
-                      timestamps, and exportable metadata.
+                      Start a source on the Live page. Each tracked object will appear here.
                     </p>
                     <Button
                       variant="primary"
@@ -148,7 +151,7 @@ export const HistoryPage: React.FC = () => {
                       icon={<Radio className="w-3.5 h-3.5" />}
                       onClick={() => navigate('/live')}
                     >
-                      Open Live Monitor →
+                      Go to Live
                     </Button>
                   </div>
                 </td>

@@ -199,8 +199,8 @@ export const ModelsPage: React.FC = () => {
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <p className="leading-relaxed">
-              <strong className="font-medium">Notice:</strong> Deployment is simulated in this build.
-              No local weights are executed. Connect a WebSocket endpoint below to stream real detections.
+              Deployment is simulated: no model weights run in this build. Connect a WebSocket
+              source below to stream real detections.
             </p>
           </div>
           <button
@@ -228,7 +228,7 @@ export const ModelsPage: React.FC = () => {
             >
               <div className="space-y-3">
                 <Select
-                  label="Input Feed"
+                  label="Input"
                   value={mode}
                   onChange={(val) => setMode(val as 'webcam' | 'demo')}
                   options={[
@@ -236,7 +236,7 @@ export const ModelsPage: React.FC = () => {
                   ]}
                 />
                 <div className="flex justify-between text-data font-mono text-text-3 pt-1">
-                  <span>Stream Resolution:</span>
+                  <span>Resolution</span>
                   <span className="text-text-1">1920×1080</span>
                 </div>
               </div>
@@ -256,7 +256,7 @@ export const ModelsPage: React.FC = () => {
                       </span>
                     </div>
                   ) : (
-                    <span className="text-text-3 font-mono">Inference Hub</span>
+                    <span className="text-text-3 font-mono">Inference</span>
                   )
                 }
                 active={isRunning}
@@ -280,12 +280,12 @@ export const ModelsPage: React.FC = () => {
                       {modelName}@{modelVersion}
                     </div>
                     <div className="text-data text-amber font-mono font-medium">
-                      SIMULATED ACTIVE
+                      SIMULATED
                     </div>
                   </div>
                 ) : (
                   <div className="text-small text-text-3">
-                    Model stopped. Deploy to activate simulated stream.
+                    Not deployed
                   </div>
                 )}
               </div>
