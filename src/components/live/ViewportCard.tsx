@@ -1,3 +1,4 @@
+import { DetectionOverlay } from './DetectionOverlay';
 import React, { useEffect, useRef } from 'react';
 import {
   CameraOff,
@@ -24,6 +25,7 @@ export const ViewportCard: React.FC = () => {
     mode: cameraMode,
     stream,
     mirror,
+    resolution,
     paused,
     startWebcamAction,
     onVideoPlaying,
@@ -128,6 +130,15 @@ export const ViewportCard: React.FC = () => {
         />
       )}
 
+      {/* Detection boxes */}
+      {isLive && (
+        <DetectionOverlay
+          sourceWidth={isDemo ? 1280 : resolution.width || 1280}
+          sourceHeight={isDemo ? 720 : resolution.height || 720}
+          mirrored={!isDemo && mirror}
+        />
+      )}
+
       {/* 3. HUD Overlay: Only "● LIVE · CAM_01" top-left (or PAUSED) and time top-right */}
       <div className="absolute inset-3 pointer-events-none flex flex-col justify-between z-20">
         <div className="flex items-center justify-between w-full">
@@ -138,7 +149,7 @@ export const ViewportCard: React.FC = () => {
                   paused ? 'bg-amber' : 'bg-red animate-pulse'
                 }`}
               />
-              <span>{paused ? 'PAUSED · CAM_01' : '● LIVE · CAM_01'}</span>
+              <span>{paused ? 'PAUSED · CAM_01' : 'LIVE · CAM_01'}</span>
             </div>
           ) : (
             <div />
