@@ -1,3 +1,3 @@
-import { getLatestFrame } from '../../server/routes';
+import { getLatestFrame } from '../../server/routes.js';
 
 export const GET = getLatestFrame;

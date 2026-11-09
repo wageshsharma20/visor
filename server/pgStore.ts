@@ -1,6 +1,6 @@
 import { neon } from '@neondatabase/serverless';
-import { DEFAULT_MODEL, DetectionFrame, DetectionRecord, ModelConfig } from './contract';
-import { DetectionQuery, Store } from './store';
+import { DEFAULT_MODEL, DetectionFrame, DetectionRecord, ModelConfig } from './contract.js';
+import { DetectionQuery, Store } from './store.js';
 
 type Sql = ReturnType<typeof neon>;
 type Row = Record<string, unknown>;

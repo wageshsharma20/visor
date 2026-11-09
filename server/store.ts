@@ -1,4 +1,4 @@
-import { DEFAULT_MODEL, DetectionFrame, DetectionRecord, ModelConfig } from './contract';
+import { DEFAULT_MODEL, DetectionFrame, DetectionRecord, ModelConfig } from './contract.js';
 
 export interface DetectionQuery {
   classId?: string;

@@ -1,3 +1,3 @@
-import { postFrame } from '../server/routes';
+import { postFrame } from '../server/routes.js';
 
 export const POST = postFrame;

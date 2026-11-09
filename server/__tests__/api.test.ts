@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryStore, MEMORY_RECORD_CAP } from '../store';
-import { setStore } from '../http';
+import { MemoryStore, MEMORY_RECORD_CAP } from '../store.js';
+import { setStore } from '../http.js';
 import {
   clearDetections,
   getLatestFrame,
@@ -10,7 +10,7 @@ import {
   listDetections,
   patchModel,
   postFrame,
-} from '../routes';
+} from '../routes.js';
 
 const KEY = 'test-key';
 const BASE = 'http://localhost/api';

@@ -1,5 +1,5 @@
-import { MemoryStore, Store } from './store';
-import { PgStore } from './pgStore';
+import { MemoryStore, Store } from './store.js';
+import { PgStore } from './pgStore.js';
 
 let store: Store | null = null;
 

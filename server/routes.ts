@@ -1,5 +1,5 @@
-import { DetectionFrame, ModelConfig, frameError, modelPatchError } from './contract';
-import { error, getStore, handle, json, readJson, requireKey } from './http';
+import { DetectionFrame, ModelConfig, frameError, modelPatchError } from './contract.js';
+import { error, getStore, handle, json, readJson, requireKey } from './http.js';
 
 /** GET /api/health */
 export const health = handle(async () => {
