@@ -18,7 +18,6 @@ import {
   Input,
   Slider,
   StatusDot,
-  MetaChip,
 } from '@/components/ui';
 import {
   GraphCanvas,
@@ -181,15 +180,7 @@ export const ModelsPage: React.FC = () => {
       {/* Top Header & Amber Meta-Chip */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-title text-text-1 font-semibold">Model Management</h1>
-            <MetaChip icon={<AlertTriangle className="w-3 h-3 text-amber" />}>
-              Simulated deployment
-            </MetaChip>
-          </div>
-          <p className="text-small text-text-3">
-            Deploy vision models, configure detection thresholds, and route telemetry endpoints.
-          </p>
+          <p className="text-small text-text-2">Choose a model and tune its thresholds.</p>
         </div>
 
         <Button

@@ -30,10 +30,7 @@ export const HistoryPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-title text-text-1 font-semibold">Detection History</h1>
-          <p className="text-small text-text-3">
-            Searchable session audit log, bounding coordinate metrics, and telemetry export.
-          </p>
+          <p className="text-small text-text-2">Every object tracked in this session.</p>
         </div>
 
         <div className="flex items-center gap-2">

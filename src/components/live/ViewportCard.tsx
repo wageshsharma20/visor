@@ -1,15 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import {
   CameraOff,
-  Video,
   AlertTriangle,
   Lock,
   RefreshCw,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { useCameraStore } from '@/stores/cameraStore';
-import { usePipelineStatus } from '@/stores/pipelineStatus';
 import { useDetectionStore } from '@/stores/detectionStore';
 import {
   globalSimulatedSource,
@@ -26,27 +23,22 @@ export const ViewportCard: React.FC = () => {
     status: cameraStatus,
     mode: cameraMode,
     stream,
-    resolution,
-    fps,
-    latencyMs,
     mirror,
     paused,
     startWebcamAction,
     onVideoPlaying,
-    stopWebcamAction,
     setMode,
     setStatus,
     setFps,
     setLatency,
   } = useCameraStore();
 
-  const pipeline = usePipelineStatus();
   const pipelineRunning = useDetectionStore((s) => s.pipelineRunning);
 
   const isDemo = cameraMode === 'demo';
   const isLive = cameraStatus === 'connected' || (isDemo && pipelineRunning);
 
-  // Attach MediaStream to <video> element
+  // Attach MediaStream to <video> element if webcam
   useEffect(() => {
     if (videoRef.current && stream && !isDemo) {
       videoRef.current.srcObject = stream;
@@ -54,7 +46,7 @@ export const ViewportCard: React.FC = () => {
     }
   }, [stream, isDemo]);
 
-  // Bind canvas to SimulatedSceneSource when in demo mode
+  // Attach canvas to simulatedSceneSource if demo
   useEffect(() => {
     if (isDemo && canvasRef.current) {
       canvasRef.current.width = 1280;
@@ -66,24 +58,15 @@ export const ViewportCard: React.FC = () => {
     };
   }, [isDemo]);
 
-  // Clean up media tracks when unmounted
-  useEffect(() => {
-    return () => {
-      stopWebcamAction();
-    };
-  }, [stopWebcamAction]);
-
   // rAF timer for HUD live clock
   useEffect(() => {
     let animId: number;
     const updateClock = () => {
       if (clockRef.current) {
         const d = new Date();
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mm = String(d.getMinutes()).padStart(2, '0');
-        const ss = String(d.getSeconds()).padStart(2, '0');
-        const ms = String(Math.floor(d.getMilliseconds() / 10)).padStart(2, '0');
-        clockRef.current.textContent = `${hh}:${mm}:${ss}.${ms}`;
+        const pad = (n: number, w = 2) => String(n).padStart(w, '0');
+        const ms = Math.floor(d.getMilliseconds() / 10);
+        clockRef.current.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(ms, 2)}`;
       }
       animId = requestAnimationFrame(updateClock);
     };
@@ -121,7 +104,7 @@ export const ViewportCard: React.FC = () => {
     <div
       ref={containerRef}
       id="viewport-card"
-      className="relative flex-1 min-h-[360px] bg-bg-0 border border-line-1 rounded-panel overflow-hidden flex items-center justify-center select-none shadow-none"
+      className="relative flex-1 min-h-[320px] bg-bg-0 border border-line-1 rounded-panel overflow-hidden flex items-center justify-center select-none shadow-none"
     >
       {/* 1. Real Webcam Video Layer (Letterboxed) */}
       {!isDemo && stream && (
@@ -145,10 +128,9 @@ export const ViewportCard: React.FC = () => {
         />
       )}
 
-      {/* 3. Minimalist HUD Overlay (Inset 12px) */}
+      {/* 3. HUD Overlay: Only "● LIVE · CAM_01" top-left (or PAUSED) and time top-right */}
       <div className="absolute inset-3 pointer-events-none flex flex-col justify-between z-20">
-        {/* Top Row: Live/Paused status + Running Timecode */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between w-full">
           {isLive ? (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-chip bg-hud-chip text-hud font-mono text-text-1 border border-line-1">
               <span
@@ -166,73 +148,14 @@ export const ViewportCard: React.FC = () => {
             <span ref={clockRef}>00:00:00.00</span>
           </div>
         </div>
-
-        {/* Bottom Row: Telemetry & Model badge */}
-        <div className="flex items-center justify-between">
-          {isLive ? (
-            <div className="px-2 py-0.5 rounded-chip bg-hud-chip text-hud font-mono text-text-3 border border-line-1">
-              <span>
-                {resolution.width}×{resolution.height} · {fps.toFixed(1)} FPS · {latencyMs} MS
-              </span>
-            </div>
-          ) : (
-            <div />
-          )}
-
-          {isLive ? (
-            <div className="px-2 py-0.5 rounded-chip bg-hud-chip text-hud font-mono border border-line-1">
-              {pipeline.model === 'running' ? (
-                pipeline.simulated ? (
-                  <span className="text-amber">{pipeline.modelDisplay}</span>
-                ) : (
-                  <span className="text-accent">{pipeline.modelDisplay}</span>
-                )
-              ) : (
-                <span className="text-text-3">NO MODEL</span>
-              )}
-            </div>
-          ) : (
-            <div />
-          )}
-        </div>
       </div>
 
-      {/* 4. Minimalist Camera Offline State */}
-      {!isLive && (
-        <div className="relative z-10 flex flex-col items-center justify-center max-w-sm px-6 py-8 text-center bg-bg-2/95 border border-line-1 rounded-card mx-4 shadow-float">
-          {cameraStatus === 'idle' && (
-            <>
-              <div className="w-10 h-10 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-text-2 mb-3">
-                <Video className="w-5 h-5 text-accent" />
-              </div>
-              <h3 className="text-body-strong text-text-1 mb-1">Camera offline</h3>
-              <p className="text-small text-text-2 mb-4 leading-relaxed">
-                Connect your webcam or run the synthetic demo scene to stream visual frames.
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="primary"
-                  size={32}
-                  icon={<Video className="w-3.5 h-3.5" />}
-                  onClick={startWebcamAction}
-                >
-                  Start Webcam
-                </Button>
-                <Button
-                  variant="secondary"
-                  size={32}
-                  icon={<Sparkles className="w-3.5 h-3.5 text-accent" />}
-                  onClick={handleStartDemo}
-                >
-                  Run Demo Scene
-                </Button>
-              </div>
-            </>
-          )}
-
+      {/* 4. Real Error States (if camera fails or is denied) */}
+      {!isLive && cameraStatus !== 'idle' && (
+        <div className="relative z-10 flex flex-col items-center justify-center max-w-sm px-6 py-8 text-center bg-bg-2/90 border border-line-1 rounded-card mx-4 shadow-float">
           {cameraStatus === 'requesting' && (
             <>
-              <div className="w-10 h-10 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-text-2 mb-3">
+              <div className="w-9 h-9 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-text-2 mb-3">
                 <RefreshCw className="w-5 h-5 text-accent animate-spin" />
               </div>
               <h3 className="text-body-strong text-text-1 mb-1">Requesting camera access</h3>
@@ -244,19 +167,19 @@ export const ViewportCard: React.FC = () => {
 
           {cameraStatus === 'denied' && (
             <>
-              <div className="w-10 h-10 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-red mb-3">
+              <div className="w-9 h-9 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-red mb-3">
                 <Lock className="w-5 h-5 text-red" />
               </div>
               <h3 className="text-body-strong text-text-1 mb-1">Camera permission denied</h3>
               <p className="text-small text-text-2 mb-4 leading-relaxed">
-                Camera access was blocked by your browser. You can still test with the demo scene.
+                Allow camera access in your browser site settings or try the synthetic demo scene.
               </p>
               <div className="flex items-center gap-2">
                 <Button variant="primary" size={32} onClick={startWebcamAction}>
                   Try Again
                 </Button>
                 <Button variant="secondary" size={32} onClick={handleStartDemo}>
-                  Run Demo Scene
+                  Try Demo Scene
                 </Button>
               </div>
             </>
@@ -264,7 +187,7 @@ export const ViewportCard: React.FC = () => {
 
           {(cameraStatus === 'no_camera' || cameraStatus === 'in_use') && (
             <>
-              <div className="w-10 h-10 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-amber mb-3">
+              <div className="w-9 h-9 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-amber mb-3">
                 <CameraOff className="w-5 h-5 text-amber" />
               </div>
               <h3 className="text-body-strong text-text-1 mb-1">
@@ -272,7 +195,7 @@ export const ViewportCard: React.FC = () => {
               </h3>
               <p className="text-small text-text-2 mb-4 leading-relaxed">
                 {cameraStatus === 'no_camera'
-                  ? 'No video input devices detected on your system.'
+                  ? 'No video input devices were detected on your system.'
                   : 'Another application is currently using the camera.'}
               </p>
               <Button variant="primary" size={32} onClick={handleStartDemo}>
@@ -283,12 +206,12 @@ export const ViewportCard: React.FC = () => {
 
           {(cameraStatus === 'insecure_context' || cameraStatus === 'error') && (
             <>
-              <div className="w-10 h-10 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-red mb-3">
+              <div className="w-9 h-9 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-red mb-3">
                 <AlertTriangle className="w-5 h-5 text-red" />
               </div>
               <h3 className="text-body-strong text-text-1 mb-1">Streaming error</h3>
               <p className="text-small text-text-2 mb-4 leading-relaxed">
-                Unable to initialize local camera stream.
+                Unable to initialize camera feed on this device.
               </p>
               <Button variant="secondary" size={32} onClick={handleStartDemo}>
                 Run Demo Scene
