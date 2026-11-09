@@ -184,12 +184,12 @@ export const ModelsPage: React.FC = () => {
         </div>
 
         <Button
-          variant={isRunning ? 'danger' : 'accent'}
+          variant={isRunning ? 'danger' : 'primary'}
           size={36}
           icon={<Zap className="w-4 h-4" />}
           onClick={handleDeployToggle}
         >
-          {isRunning ? 'Stop Model Deployment' : 'Deploy Model (Simulated)'}
+          {isRunning ? 'Stop model' : 'Deploy model'}
         </Button>
       </div>
 
@@ -221,10 +221,9 @@ export const ModelsPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
             {/* 1. SOURCE NODE (Only has right port) */}
             <NodeCard
-              title="Source Node"
+              title="Source"
               icon={<Radio className="w-3.5 h-3.5 text-text-2" />}
-              statusDot={<StatusDot state="idle" />}
-              ports={{ right: 'source-out' }}
+                            ports={{ right: 'source-out' }}
               className="bg-bg-2"
             >
               <div className="space-y-3">
@@ -267,7 +266,7 @@ export const ModelsPage: React.FC = () => {
 
             {/* 3. OUTPUT PREVIEW NODE (Only has left port) */}
             <NodeCard
-              title="Output Preview"
+              title="Output"
               icon={<Layers className="w-3.5 h-3.5 text-text-2" />}
               statusDot={<StatusDot state={isRunning ? 'warning' : 'idle'} />}
               ports={{ left: 'preview-in' }}
@@ -304,10 +303,9 @@ export const ModelsPage: React.FC = () => {
         {/* Model Configuration Card */}
         <Card>
           <CardHeader
-            title="Model Architecture & Runtime"
+            title="Model"
             icon={<Zap className="w-3.5 h-3.5 text-text-2" />}
-            statusDot={<StatusDot state="idle" />}
-          />
+                      />
           <div className="p-4 space-y-4">
             <div className="p-4 border border-dashed border-line-2 rounded-control bg-bg-3/30 flex flex-col items-center justify-center text-center hover:border-line-1 cursor-pointer transition-colors duration-fast">
               <UploadCloud className="w-6 h-6 text-text-3 mb-1.5" />
@@ -357,10 +355,9 @@ export const ModelsPage: React.FC = () => {
         {/* Thresholds Card */}
         <Card>
           <CardHeader
-            title="Inference & Watchlist Thresholds"
+            title="Thresholds"
             icon={<Sliders className="w-3.5 h-3.5 text-text-2" />}
-            statusDot={<StatusDot state="idle" />}
-          />
+                      />
           <div className="p-4 space-y-4">
             <Slider
               surface="card"
@@ -406,10 +403,9 @@ export const ModelsPage: React.FC = () => {
       {/* WebSocket Endpoint Form Card */}
       <Card>
         <CardHeader
-          title="Remote WebSocket Telemetry Endpoint"
+          title="WebSocket source"
           icon={<Network className="w-3.5 h-3.5 text-text-2" />}
-          statusDot={<StatusDot state="idle" />}
-        />
+                  />
         <div className="p-4 space-y-3">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
             <div className="flex-1">

@@ -165,7 +165,8 @@ export const FloatingToolbar: React.FC = () => {
       </div>
 
       {/* ITEM 4: Compact Threshold Slider */}
-      <div className="flex items-center shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="hidden md:inline text-small text-text-3">Min confidence</span>
         <Tooltip content={`Confidence threshold: ${(threshold * 100).toFixed(0)}%`}>
           <Slider
             variant="compact"
