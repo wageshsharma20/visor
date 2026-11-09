@@ -15,7 +15,7 @@ export const postFrame = handle(async (req) => {
   const denied = requireKey(req);
   if (denied) return denied;
   const body = await readJson(req);
-  if (!body.ok) return body.res;
+  if ('res' in body) return body.res;
   const reason = frameError(body.value);
   if (reason) return error(422, reason);
   const frame = body.value as DetectionFrame;
@@ -70,7 +70,7 @@ export const patchModel = handle(async (req) => {
   const denied = requireKey(req);
   if (denied) return denied;
   const body = await readJson(req);
-  if (!body.ok) return body.res;
+  if ('res' in body) return body.res;
   const reason = modelPatchError(body.value);
   if (reason) return error(422, reason);
   const v = body.value as Partial<ModelConfig>;
