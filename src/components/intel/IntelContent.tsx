@@ -133,10 +133,19 @@ export const IntelContent: React.FC = () => {
               <div
                 key={track.id}
                 data-testid="track-row"
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
                 onClick={() => handleSelectTrack(track)}
-                className={`p-2 rounded-control border cursor-pointer transition-colors duration-fast flex items-center justify-between gap-2 ${
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelectTrack(track);
+                  }
+                }}
+                className={`animate-enter p-2 rounded-control border cursor-pointer transition-colors duration-fast focus-visible:outline-none focus-visible:shadow-focus flex items-center justify-between gap-2 ${
                   isSelected
-                    ? 'bg-bg-3 border-accent/40 shadow-glow-accent/20'
+                    ? 'bg-bg-3 border-accent/40'
                     : 'bg-bg-2 hover:bg-bg-3 border-line-1'
                 }`}
               >

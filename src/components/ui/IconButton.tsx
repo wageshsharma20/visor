@@ -46,7 +46,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
           aria-label={label}
           aria-pressed={active}
           disabled={disabled}
-          className={`inline-flex items-center justify-center rounded-control transition-colors duration-fast select-none focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-40 disabled:pointer-events-none ${sizeClasses} ${stateClasses} ${className}`}
+          className={`press inline-flex items-center justify-center rounded-control transition-colors duration-fast select-none focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-40 disabled:pointer-events-none ${sizeClasses} ${stateClasses} ${className}`}
           {...props}
         >
           <span className="w-4 h-4 flex items-center justify-center [&>svg]:w-4 [&>svg]:h-4 [&>svg]:stroke-[1.75]">

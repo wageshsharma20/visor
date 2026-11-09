@@ -62,7 +62,7 @@ export const LivePage: React.FC = () => {
   if (!isStreaming) {
     return (
       <div className="flex-1 w-full h-full flex items-center justify-center p-4">
-        <Card className="max-w-[420px] w-full p-6 text-center flex flex-col items-center gap-4 bg-bg-2 border-line-1 rounded-card shadow-float select-none">
+        <Card className="animate-pop max-w-[420px] w-full p-6 text-center flex flex-col items-center gap-4 bg-bg-2 border-line-1 rounded-card shadow-float select-none">
           <div className="w-12 h-12 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-accent">
             <Camera className="w-7 h-7 text-accent" />
           </div>
@@ -114,7 +114,7 @@ export const LivePage: React.FC = () => {
   // STATE 2: Streaming, nothing detected yet -> Viewport + Toolbar fill full width
   // STATE 3: Detections arriving -> Side panel slides in from the right (240ms)
   return (
-    <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 h-full overflow-hidden select-none">
+    <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 h-full overflow-y-auto lg:overflow-hidden pb-20 sm:pb-0 select-none">
       {/* Main Column: Viewport + Floating Toolbar */}
       <div className="flex-1 min-w-0 flex flex-col gap-3 h-full overflow-hidden">
         <ViewportCard />
@@ -123,7 +123,7 @@ export const LivePage: React.FC = () => {
 
       {/* Side Panel: Slides in only when detections arrive (State 3) */}
       {hasDetections && (
-        <aside className="w-full lg:w-intel-sm xl:w-intel shrink-0 h-auto lg:h-full overflow-y-auto no-scrollbar transition-all duration-slow">
+        <aside className="animate-slide-left w-full lg:w-intel-sm xl:w-intel shrink-0 h-auto lg:h-full overflow-y-auto no-scrollbar">
           <IntelContent />
         </aside>
       )}

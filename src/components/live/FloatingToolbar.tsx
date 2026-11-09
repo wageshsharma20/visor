@@ -109,7 +109,7 @@ export const FloatingToolbar: React.FC = () => {
   return (
     <div
       aria-label="Viewport Controls"
-      className="h-toolbar bg-bg-2 border border-line-1 rounded-panel px-3 flex items-center justify-between gap-3 shadow-none select-none shrink-0"
+      className="h-toolbar bg-bg-2 border border-line-1 rounded-panel px-2 sm:px-3 flex items-center justify-between gap-2 sm:gap-3 shadow-none select-none shrink-0"
     >
       {/* ITEM 1: Start ▾ Menu */}
       <div className="flex items-center shrink-0">
@@ -120,11 +120,11 @@ export const FloatingToolbar: React.FC = () => {
             <Button
               variant={isLive ? 'secondary' : 'primary'}
               size={32}
-              className="flex items-center gap-1.5 font-mono text-small"
+              className="flex items-center gap-1.5 font-mono text-small whitespace-nowrap"
             >
               {isLive ? (
                 <>
-                  <span className={`w-1.5 h-1.5 rounded-full ${paused ? 'bg-amber' : 'bg-accent-bright shadow-glow-accent'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${paused ? 'bg-amber' : 'bg-accent-bright'}`} />
                   <span>{cameraMode === 'webcam' ? 'Webcam' : 'Demo'}</span>
                 </>
               ) : (
@@ -159,7 +159,7 @@ export const FloatingToolbar: React.FC = () => {
           label="Toggle Bounding Boxes (B)"
           size={32}
           active={showBoxes}
-          activeVariant="accent"
+          activeVariant="steel"
           onClick={() => setShowBoxes(!showBoxes)}
         />
       </div>
@@ -180,8 +180,8 @@ export const FloatingToolbar: React.FC = () => {
         </Tooltip>
       </div>
 
-      {/* ITEM 5: Fullscreen Toggle */}
-      <div className="flex items-center shrink-0">
+      {/* ITEM 5: Fullscreen Toggle (hidden on phones, where the page is already the viewport) */}
+      <div className="hidden sm:flex items-center shrink-0">
         <IconButton
           icon={<Maximize2 className="w-4 h-4" />}
           label="Toggle Fullscreen (F)"

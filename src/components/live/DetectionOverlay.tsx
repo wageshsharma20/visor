@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { contentRect, toScreen, Rect } from '@/lib/geometry';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { contentRect, resolveLabelPositions, toScreen, Rect } from '@/lib/geometry';
 import { useDetectionStore } from '@/stores/detectionStore';
 import { useUiStore } from '@/stores/uiStore';
 
@@ -37,6 +37,12 @@ export const DetectionOverlay: React.FC<DetectionOverlayProps> = ({
     return () => ro.disconnect();
   }, [sourceWidth, sourceHeight]);
 
+  // Non-overlapping label placement (flips inside near the top edge).
+  const labels = useMemo(
+    () => resolveLabelPositions(tracks.map((t) => ({ id: t.id, bbox: t.bbox })), rect, 16, mirrored),
+    [tracks, rect, mirrored],
+  );
+
   return (
     <div ref={ref} className="absolute inset-0 z-10 pointer-events-none" aria-hidden={!showBoxes}>
       {showBoxes &&
@@ -50,32 +56,34 @@ export const DetectionOverlay: React.FC<DetectionOverlayProps> = ({
             : selected
               ? 'bg-fill-white text-on-white'
               : 'bg-accent text-on-accent';
-          const labelBelow = box.y < 22;
+          const label = labels.get(t.id);
           return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setSelected(selected ? null : t.id)}
-              aria-label={`${t.label} ${t.displayId}, ${Math.round(t.confidence * 100)}%`}
-              className={`absolute pointer-events-auto rounded-chip border ${tone} ${
-                selected ? 'border-2' : ''
-              } transition-[transform,opacity] duration-fast focus-visible:outline-none focus-visible:shadow-focus`}
-              style={{
-                transform: `translate(${box.x}px, ${box.y}px)`,
-                width: box.width,
-                height: box.height,
-                left: 0,
-                top: 0,
-              }}
-            >
-              <span
-                className={`absolute left-[-1px] ${
-                  labelBelow ? 'top-full mt-1' : 'bottom-full mb-1'
-                } whitespace-nowrap px-1.5 py-px rounded-chip font-mono text-hud ${chip}`}
-              >
-                {t.label.toUpperCase()} {Math.round(t.confidence * 100)}%
-              </span>
-            </button>
+            <React.Fragment key={t.id}>
+              <button
+                type="button"
+                onClick={() => setSelected(selected ? null : t.id)}
+                aria-label={`${t.label} ${t.displayId}, ${Math.round(t.confidence * 100)}%`}
+                aria-pressed={selected}
+                className={`absolute pointer-events-auto rounded-chip border ${tone} ${
+                  selected ? 'border-2' : 'hover:border-2'
+                } animate-fade focus-visible:outline-none focus-visible:shadow-focus`}
+                style={{
+                  // left/top (not transform) so boxes stay placed when reduced-motion strips transforms
+                  left: box.x,
+                  top: box.y,
+                  width: box.width,
+                  height: box.height,
+                }}
+              />
+              {label && (
+                <span
+                  className={`absolute whitespace-nowrap px-1.5 py-px rounded-chip font-mono text-hud animate-fade ${chip}`}
+                  style={{ left: label.x, top: label.y }}
+                >
+                  {t.label.toUpperCase()} {Math.round(t.confidence * 100)}%
+                </span>
+              )}
+            </React.Fragment>
           );
         })}
     </div>

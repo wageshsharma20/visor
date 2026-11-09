@@ -159,10 +159,11 @@ export const HistoryPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r) => (
+                {filtered.map((r, i) => (
                   <tr
                     key={r.trackId}
-                    className="border-b border-line-1 last:border-b-0 hover:bg-bg-3 transition-colors duration-fast"
+                    className="animate-enter border-b border-line-1 last:border-b-0 hover:bg-bg-3 transition-colors duration-fast"
+                    style={{ animationDelay: `${Math.min(i, 12) * 20}ms` }}
                   >
                     <td className="py-2.5 px-4 font-mono text-data text-accent">{r.trackId}</td>
                     <td className="py-2.5 px-4 text-body text-text-1 capitalize">{r.classId}</td>

@@ -26,7 +26,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center gap-2 font-sans text-body-strong transition-colors duration-fast rounded-control select-none focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed';
+      'press inline-flex items-center justify-center gap-2 font-sans text-body-strong transition-colors duration-fast rounded-control select-none focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed';
 
     const sizeStyles = {
       32: 'h-8 px-3 text-body-strong',
@@ -60,7 +60,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             {icon}
           </span>
         ) : null}
-        {children && <span>{children}</span>}
+        {children && <span className="inline-flex items-center gap-1.5 whitespace-nowrap">{children}</span>}
       </button>
     );
   }

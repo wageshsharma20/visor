@@ -77,12 +77,20 @@ export const IconRail: React.FC = () => {
                     type="button"
                     onClick={() => navigate(item.path)}
                     aria-label={item.label}
-                    className={`w-8 h-8 rounded-control flex items-center justify-center transition-all duration-fast focus-visible:outline-none focus-visible:shadow-focus ${
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`press relative w-8 h-8 rounded-control flex items-center justify-center focus-visible:outline-none focus-visible:shadow-focus ${
                       isActive
                         ? 'bg-bg-3 text-accent'
                         : 'text-icon-dim hover:text-text-1 hover:bg-bg-3'
                     }`}
                   >
+                    {/* Active indicator: a short accent bar on the rail edge */}
+                    <span
+                      aria-hidden
+                      className={`absolute -left-[10px] top-1.5 bottom-1.5 w-[2px] rounded-full bg-accent transition-[transform,opacity] duration-base ${
+                        isActive ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0'
+                      }`}
+                    />
                     {item.icon}
                   </button>
                 </Tooltip>
