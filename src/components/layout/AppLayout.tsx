@@ -33,7 +33,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             isLivePage ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'
           }`}
         >
-          {children}
+          {/* Re-keyed per route so each page eases in */}
+          <div
+            key={location.pathname}
+            className={`animate-enter ${isLivePage ? 'flex-1 min-h-0 flex flex-col' : ''}`}
+          >
+            {children}
+          </div>
         </main>
       </div>
 

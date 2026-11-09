@@ -3,6 +3,7 @@ import { Tracker } from '@/engine/tracker';
 import { SimulatedSceneSource } from '@/sources/simulatedScene';
 import { WebSocketSource } from '@/sources/websocketSource';
 import { RecordedTracksSource } from '@/sources/recordedTracks';
+import { ApiPollingSource } from '@/sources/apiPollingSource';
 import {
   ActiveSourceType,
   useDetectionStore,
@@ -20,11 +21,13 @@ export const globalTracker = new Tracker();
 export const globalSimulatedSource = new SimulatedSceneSource();
 export const globalWebSocketSource = new WebSocketSource();
 export const globalRecordedSource = new RecordedTracksSource();
+export const globalApiSource = new ApiPollingSource();
 
 const sourceRegistry = new Map<ActiveSourceType, DetectionSource>([
   ['synthetic', globalSimulatedSource],
   ['recorded', globalRecordedSource],
   ['websocket', globalWebSocketSource],
+  ['api', globalApiSource],
 ]);
 
 export function registerSource(type: ActiveSourceType, source: DetectionSource): void {

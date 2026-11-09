@@ -1,4 +1,4 @@
-export type CameraMode = 'webcam' | 'demo';
+export type CameraMode = 'webcam' | 'demo' | 'remote';
 
 export type CameraStatus =
   | 'idle'

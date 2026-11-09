@@ -18,7 +18,6 @@ import {
   Input,
   Slider,
   StatusDot,
-  MetaChip,
 } from '@/components/ui';
 import {
   GraphCanvas,
@@ -181,24 +180,16 @@ export const ModelsPage: React.FC = () => {
       {/* Top Header & Amber Meta-Chip */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-title text-text-1 font-semibold">Model Management</h1>
-            <MetaChip icon={<AlertTriangle className="w-3 h-3 text-amber" />}>
-              Simulated deployment
-            </MetaChip>
-          </div>
-          <p className="text-small text-text-3">
-            Deploy vision models, configure detection thresholds, and route telemetry endpoints.
-          </p>
+          <p className="text-small text-text-2">Choose a model and tune its thresholds.</p>
         </div>
 
         <Button
-          variant={isRunning ? 'danger' : 'accent'}
+          variant={isRunning ? 'danger' : 'primary'}
           size={36}
           icon={<Zap className="w-4 h-4" />}
           onClick={handleDeployToggle}
         >
-          {isRunning ? 'Stop Model Deployment' : 'Deploy Model (Simulated)'}
+          {isRunning ? 'Stop model' : 'Deploy model'}
         </Button>
       </div>
 
@@ -208,8 +199,8 @@ export const ModelsPage: React.FC = () => {
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <p className="leading-relaxed">
-              <strong className="font-medium">Notice:</strong> Deployment is simulated in this build.
-              No local weights are executed. Connect a WebSocket endpoint below to stream real detections.
+              Deployment is simulated: no model weights run in this build. Connect a WebSocket
+              source below to stream real detections.
             </p>
           </div>
           <button
@@ -230,15 +221,14 @@ export const ModelsPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
             {/* 1. SOURCE NODE (Only has right port) */}
             <NodeCard
-              title="Source Node"
+              title="Source"
               icon={<Radio className="w-3.5 h-3.5 text-text-2" />}
-              statusDot={<StatusDot state="idle" />}
-              ports={{ right: 'source-out' }}
+                            ports={{ right: 'source-out' }}
               className="bg-bg-2"
             >
               <div className="space-y-3">
                 <Select
-                  label="Input Feed"
+                  label="Input"
                   value={mode}
                   onChange={(val) => setMode(val as 'webcam' | 'demo')}
                   options={[
@@ -246,7 +236,7 @@ export const ModelsPage: React.FC = () => {
                   ]}
                 />
                 <div className="flex justify-between text-data font-mono text-text-3 pt-1">
-                  <span>Stream Resolution:</span>
+                  <span>Resolution</span>
                   <span className="text-text-1">1920×1080</span>
                 </div>
               </div>
@@ -266,7 +256,7 @@ export const ModelsPage: React.FC = () => {
                       </span>
                     </div>
                   ) : (
-                    <span className="text-text-3 font-mono">Inference Hub</span>
+                    <span className="text-text-3 font-mono">Inference</span>
                   )
                 }
                 active={isRunning}
@@ -276,7 +266,7 @@ export const ModelsPage: React.FC = () => {
 
             {/* 3. OUTPUT PREVIEW NODE (Only has left port) */}
             <NodeCard
-              title="Output Preview"
+              title="Output"
               icon={<Layers className="w-3.5 h-3.5 text-text-2" />}
               statusDot={<StatusDot state={isRunning ? 'warning' : 'idle'} />}
               ports={{ left: 'preview-in' }}
@@ -290,12 +280,12 @@ export const ModelsPage: React.FC = () => {
                       {modelName}@{modelVersion}
                     </div>
                     <div className="text-data text-amber font-mono font-medium">
-                      SIMULATED ACTIVE
+                      SIMULATED
                     </div>
                   </div>
                 ) : (
                   <div className="text-small text-text-3">
-                    Model stopped. Deploy to activate simulated stream.
+                    Not deployed
                   </div>
                 )}
               </div>
@@ -313,10 +303,9 @@ export const ModelsPage: React.FC = () => {
         {/* Model Configuration Card */}
         <Card>
           <CardHeader
-            title="Model Architecture & Runtime"
+            title="Model"
             icon={<Zap className="w-3.5 h-3.5 text-text-2" />}
-            statusDot={<StatusDot state="idle" />}
-          />
+                      />
           <div className="p-4 space-y-4">
             <div className="p-4 border border-dashed border-line-2 rounded-control bg-bg-3/30 flex flex-col items-center justify-center text-center hover:border-line-1 cursor-pointer transition-colors duration-fast">
               <UploadCloud className="w-6 h-6 text-text-3 mb-1.5" />
@@ -366,10 +355,9 @@ export const ModelsPage: React.FC = () => {
         {/* Thresholds Card */}
         <Card>
           <CardHeader
-            title="Inference & Watchlist Thresholds"
+            title="Thresholds"
             icon={<Sliders className="w-3.5 h-3.5 text-text-2" />}
-            statusDot={<StatusDot state="idle" />}
-          />
+                      />
           <div className="p-4 space-y-4">
             <Slider
               surface="card"
@@ -415,10 +403,9 @@ export const ModelsPage: React.FC = () => {
       {/* WebSocket Endpoint Form Card */}
       <Card>
         <CardHeader
-          title="Remote WebSocket Telemetry Endpoint"
+          title="WebSocket source"
           icon={<Network className="w-3.5 h-3.5 text-text-2" />}
-          statusDot={<StatusDot state="idle" />}
-        />
+                  />
         <div className="p-4 space-y-3">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
             <div className="flex-1">

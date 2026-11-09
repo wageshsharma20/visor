@@ -2,11 +2,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout';
 import { LivePage } from '@/pages/LivePage';
-import { OverviewPage } from '@/pages/OverviewPage';
 import { ModelsPage } from '@/pages/ModelsPage';
 import { HistoryPage } from '@/pages/HistoryPage';
-import { AnalyticsPage } from '@/pages/AnalyticsPage';
-import { SettingsPage } from '@/pages/SettingsPage';
 import { UiReviewPage } from '@/pages/UiReviewPage';
 
 export const App: React.FC = () => {
@@ -30,14 +27,6 @@ export const App: React.FC = () => {
           }
         />
         <Route
-          path="/overview"
-          element={
-            <AppLayout>
-              <OverviewPage />
-            </AppLayout>
-          }
-        />
-        <Route
           path="/models"
           element={
             <AppLayout>
@@ -53,22 +42,11 @@ export const App: React.FC = () => {
             </AppLayout>
           }
         />
-        <Route
-          path="/analytics"
-          element={
-            <AppLayout>
-              <AnalyticsPage />
-            </AppLayout>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <AppLayout>
-              <SettingsPage />
-            </AppLayout>
-          }
-        />
+
+        {/* Redirect removed routes to /live per Phase 3.5 */}
+        <Route path="/overview" element={<Navigate to="/live" replace />} />
+        <Route path="/analytics" element={<Navigate to="/live" replace />} />
+        <Route path="/settings" element={<Navigate to="/live" replace />} />
 
         {/* Dev-only UI review page */}
         {import.meta.env.DEV && <Route path="/__ui" element={<UiReviewPage />} />}

@@ -1,187 +1,221 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Clock,
-  Download,
-  Trash2,
-  Filter,
-  Radio,
-  FileSpreadsheet,
-} from 'lucide-react';
-import {
-  Card,
-  CardHeader,
-  Button,
-  Input,
-  Select,
-  StatusDot,
-  Dialog,
-} from '@/components/ui';
+import { Clock, Download, FileSpreadsheet, Radio, RefreshCw } from 'lucide-react';
+import { Card, CardHeader, Button, IconButton, Input, Select } from '@/components/ui';
+import { API_BASE } from '@/sources/apiPollingSource';
+
+interface DetectionRecord {
+  trackId: string;
+  classId: string;
+  firstSeen: number;
+  lastSeen: number;
+  confidence: number;
+  peakConfidence: number;
+  frames: number;
+}
+
+type LoadState = 'loading' | 'ready' | 'offline';
+
+const PAGE_SIZE = 200;
+
+function formatTime(ms: number): string {
+  return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function formatDuration(ms: number): string {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
+function toCsv(rows: DetectionRecord[]): string {
+  const head = 'track_id,class,first_seen,last_seen,peak_confidence,frames';
+  const body = rows.map((r) =>
+    [r.trackId, r.classId, new Date(r.firstSeen).toISOString(), new Date(r.lastSeen).toISOString(), r.peakConfidence.toFixed(3), r.frames]
+      .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+      .join(','),
+  );
+  return [head, ...body].join('\n');
+}
 
 export const HistoryPage: React.FC = () => {
   const navigate = useNavigate();
+  const [rows, setRows] = useState<DetectionRecord[]>([]);
+  const [state, setState] = useState<LoadState>('loading');
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
-  const [clearDialogOpen, setClearDialogOpen] = useState(false);
-  const totalRows = 0;
+
+  const load = useCallback(async () => {
+    setState('loading');
+    try {
+      const res = await fetch(`${API_BASE}/detections?limit=${PAGE_SIZE}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(String(res.status));
+      const body = (await res.json()) as { items: DetectionRecord[] };
+      setRows(body.items);
+      setState('ready');
+    } catch {
+      setRows([]);
+      setState('offline');
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const classes = useMemo(() => [...new Set(rows.map((r) => r.classId))].sort(), [rows]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter(
+      (r) =>
+        (classFilter === 'all' || r.classId === classFilter) &&
+        (!q || r.trackId.toLowerCase().includes(q) || r.classId.toLowerCase().includes(q)),
+    );
+  }, [rows, search, classFilter]);
+
+  const exportCsv = () => {
+    const blob = new Blob([toCsv(filtered)], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `visor-detections-${new Date().toISOString().slice(0, 19)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const hasRows = rows.length > 0;
 
   return (
     <div className="flex flex-col gap-5 max-w-6xl mx-auto w-full pb-16 sm:pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-title text-text-1 font-semibold">Detection History</h1>
-          <p className="text-small text-text-3">
-            Searchable session audit log, bounding coordinate metrics, and telemetry export.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Export CSV is hidden when there are 0 rows per requirement */}
-          {totalRows > 0 && (
+      <div className="flex items-center justify-between gap-3 min-h-8">
+        <p className="text-small text-text-2">Every object the backend has tracked, newest first.</p>
+        {hasRows && (
+          <div className="flex items-center gap-2">
+            <IconButton
+              icon={<RefreshCw className="w-4 h-4" />}
+              label="Refresh"
+              size={32}
+              onClick={() => void load()}
+            />
             <Button
               variant="secondary"
               size={32}
               icon={<Download className="w-3.5 h-3.5" />}
-              onClick={() => {}}
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
             >
               Export CSV
             </Button>
-          )}
-
-          <Button
-            variant="danger"
-            size={32}
-            icon={<Trash2 className="w-3.5 h-3.5" />}
-            onClick={() => setClearDialogOpen(true)}
-          >
-            Clear History
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Filter Bar */}
-      <Card>
-        <div className="p-3 flex flex-wrap items-center gap-3">
+      {hasRows && (
+        <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[200px]">
             <Input
-              placeholder="Search by class, tracking ID, or notes…"
+              placeholder="Search by class or track ID"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-
           <div className="w-44">
             <Select
               value={classFilter}
               onChange={setClassFilter}
               options={[
-                { label: 'All Classes', value: 'all' },
-                { label: 'Person', value: 'person' },
-                { label: 'Vehicle', value: 'vehicle' },
-                { label: 'Bag / Suitcase', value: 'bag' },
-                { label: 'Animal', value: 'animal' },
+                { label: 'All classes', value: 'all' },
+                ...classes.map((c) => ({ label: c, value: c })),
               ]}
             />
           </div>
-
-          <Button
-            variant="ghost"
-            size={36}
-            icon={<Filter className="w-3.5 h-3.5" />}
-            onClick={() => {
-              setSearch('');
-              setClassFilter('all');
-            }}
-          >
-            Reset
-          </Button>
         </div>
-      </Card>
+      )}
 
-      {/* History Table Card with Sticky Header per DESIGN.md §7 */}
       <Card className="flex flex-col overflow-hidden">
         <CardHeader
-          title="Session Records"
+          title="Detections"
           icon={<Clock className="w-3.5 h-3.5 text-text-2" />}
-          statusDot={<StatusDot state="idle" />}
           action={
-            totalRows > 0 ? (
-              <span className="font-mono text-data text-text-3 px-1.5 py-0.5 rounded-chip bg-bg-3 border border-line-1">
-                {totalRows} records
+            hasRows ? (
+              <span className="font-mono text-data text-text-3">
+                {filtered.length === rows.length ? rows.length : `${filtered.length} / ${rows.length}`}
               </span>
             ) : undefined
           }
         />
 
-        {/* Table Structure */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-line-1 bg-bg-3 text-label text-text-2 font-mono uppercase tracking-wider">
-                <th className="py-2.5 px-3">Thumb</th>
-                <th className="py-2.5 px-3">First Seen</th>
-                <th className="py-2.5 px-3">Class</th>
-                <th className="py-2.5 px-3">Track ID</th>
-                <th className="py-2.5 px-3">Peak Conf</th>
-                <th className="py-2.5 px-3">Duration</th>
-                <th className="py-2.5 px-3">Status</th>
-                <th className="py-2.5 px-3">Flagged</th>
-                <th className="py-2.5 px-3">AI Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Honest Empty State */}
-              <tr>
-                <td colSpan={9} className="py-16 text-center">
-                  <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                    <div className="w-9 h-9 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-text-3 mb-3">
-                      <FileSpreadsheet className="w-4 h-4" />
-                    </div>
-                    <div className="text-body-strong text-text-1 mb-1">
-                      No Records In Session
-                    </div>
-                    <p className="text-small text-text-3 mb-4 leading-relaxed">
-                      Detections tracked by the vision engine will be cataloged with micro-thumbnails,
-                      timestamps, and exportable metadata.
-                    </p>
-                    <Button
-                      variant="primary"
-                      size={32}
-                      icon={<Radio className="w-3.5 h-3.5" />}
-                      onClick={() => navigate('/live')}
-                    >
-                      Open Live Monitor →
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Clear Dialog */}
-      <Dialog
-        open={clearDialogOpen}
-        onClose={() => setClearDialogOpen(false)}
-        title="Clear Detection History"
-        description="Delete all 0 session detections? This action cannot be undone."
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" size={32} onClick={() => setClearDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" size={32} onClick={() => setClearDialogOpen(false)}>
-              Clear records
-            </Button>
+        {hasRows ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-line-1 text-label text-text-3 font-mono uppercase tracking-wider">
+                  <th className="py-2.5 px-4 font-medium">Track</th>
+                  <th className="py-2.5 px-4 font-medium">Class</th>
+                  <th className="py-2.5 px-4 font-medium">First seen</th>
+                  <th className="py-2.5 px-4 font-medium">Duration</th>
+                  <th className="py-2.5 px-4 font-medium text-right">Peak conf</th>
+                  <th className="py-2.5 px-4 font-medium text-right">Frames</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((r, i) => (
+                  <tr
+                    key={r.trackId}
+                    className="animate-enter border-b border-line-1 last:border-b-0 hover:bg-bg-3 transition-colors duration-fast"
+                    style={{ animationDelay: `${Math.min(i, 12) * 20}ms` }}
+                  >
+                    <td className="py-2.5 px-4 font-mono text-data text-accent">{r.trackId}</td>
+                    <td className="py-2.5 px-4 text-body text-text-1 capitalize">{r.classId}</td>
+                    <td className="py-2.5 px-4 font-mono text-data text-text-2">{formatTime(r.firstSeen)}</td>
+                    <td className="py-2.5 px-4 font-mono text-data text-text-2">
+                      {formatDuration(r.lastSeen - r.firstSeen)}
+                    </td>
+                    <td className="py-2.5 px-4 font-mono text-data text-text-1 text-right">
+                      {Math.round(r.peakConfidence * 100)}%
+                    </td>
+                    <td className="py-2.5 px-4 font-mono text-data text-text-3 text-right">{r.frames}</td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-small text-text-3">
+                      No detections match these filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        }
-      >
-        <div className="text-small text-text-3">
-          All cataloged bounding tracks and telemetry metadata will be purged from the session.
-        </div>
-      </Dialog>
+        ) : (
+          <div className="py-16 px-6 flex flex-col items-center text-center max-w-sm mx-auto">
+            <div className="w-9 h-9 rounded-control bg-bg-3 border border-line-2 flex items-center justify-center text-text-3 mb-3">
+              {state === 'loading' ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="w-4 h-4" />
+              )}
+            </div>
+            <div className="text-body-strong text-text-1 mb-1">
+              {state === 'loading' ? 'Loading' : state === 'offline' ? 'Backend not reachable' : 'No detections yet'}
+            </div>
+            <p className="text-small text-text-3 mb-4 leading-relaxed">
+              {state === 'offline'
+                ? 'History is stored by the VISOR API. Check that it is deployed and try again.'
+                : 'When a model sends frames to the backend, each tracked object appears here.'}
+            </p>
+            {state === 'offline' ? (
+              <Button variant="secondary" size={32} icon={<RefreshCw className="w-3.5 h-3.5" />} onClick={() => void load()}>
+                Try again
+              </Button>
+            ) : state === 'ready' ? (
+              <Button variant="primary" size={32} icon={<Radio className="w-3.5 h-3.5" />} onClick={() => navigate('/live')}>
+                Go to Live
+              </Button>
+            ) : null}
+          </div>
+        )}
+      </Card>
     </div>
   );
 };
