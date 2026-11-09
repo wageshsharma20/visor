@@ -4,7 +4,7 @@
 
 VISOR is a frontend for operating a real-time visual detection model. A user connects a camera (or runs a demo scene), connects a model (or uses the simulator), and watches detections appear on the live feed: boxes, labels, tracking IDs, confidence, and an AI-written description per object. Every detection is logged to an intelligence panel, a timeline and a searchable history that can be exported.
 
-**This is frontend only.** There is no backend and no model server. Detections come from a pluggable `DetectionSource`. This build ships with a simulator. A real model plugs in later through WebSocket without UI changes.
+**There is no model server.** A serverless API in `/api` stores frames and history (see `docs/BACKEND.md`). Detections come from a pluggable `DetectionSource`. This build ships with a simulator. A real model plugs in later through WebSocket without UI changes.
 
 **Honesty requirement.** The UI must always make clear where detections come from: `SIMULATED`, `BROWSER MODEL`, or `REMOTE MODEL`. Simulated boxes are never drawn over a live webcam, because they would be meaningless rectangles over the user's room.
 

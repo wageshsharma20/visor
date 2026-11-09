@@ -1,12 +1,13 @@
-import React from 'react';
-import { Camera, Sparkles, Video } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Camera, Server, Sparkles, Video } from 'lucide-react';
 import { ViewportCard } from '@/components/live/ViewportCard';
 import { FloatingToolbar } from '@/components/live/FloatingToolbar';
 import { IntelContent } from '@/components/intel/IntelContent';
 import { Card, Button } from '@/components/ui';
 import { useCameraStore } from '@/stores/cameraStore';
 import { useDetectionStore } from '@/stores/detectionStore';
-import { startDetectionPipeline } from '@/lib/useDetectionPipeline';
+import { setActiveDetectionSource, startDetectionPipeline } from '@/lib/useDetectionPipeline';
+import { backendAvailable } from '@/sources/apiPollingSource';
 
 export const LivePage: React.FC = () => {
   const {
@@ -23,6 +24,16 @@ export const LivePage: React.FC = () => {
 
   const isDemo = cameraMode === 'demo';
   const isStreaming = cameraStatus === 'connected' || cameraStatus === 'requesting' || (isDemo && pipelineRunning);
+
+  // Progressive disclosure: offer the backend only when it answers.
+  const [hasBackend, setHasBackend] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    backendAvailable().then((ok) => alive && setHasBackend(ok));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const hasDetections = tracks.length > 0 || visibleTracks.length > 0;
 
   const handleStartWebcam = async () => {
@@ -30,7 +41,15 @@ export const LivePage: React.FC = () => {
     await startWebcamAction();
   };
 
+  const handleStartBackend = async () => {
+    setActiveDetectionSource('api');
+    setMode('remote');
+    setStatus('connected');
+    await startDetectionPipeline();
+  };
+
   const handleStartDemo = async () => {
+    setActiveDetectionSource('synthetic');
     setMode('demo');
     setStatus('connected');
     setFps(30);
@@ -75,6 +94,18 @@ export const LivePage: React.FC = () => {
               Try demo scene
             </Button>
           </div>
+
+          {hasBackend && (
+            <Button
+              variant="ghost"
+              size={32}
+              icon={<Server className="w-4 h-4" />}
+              className="w-full justify-center"
+              onClick={handleStartBackend}
+            >
+              Connect to backend feed
+            </Button>
+          )}
         </Card>
       </div>
     );

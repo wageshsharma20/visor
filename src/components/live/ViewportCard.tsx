@@ -135,7 +135,7 @@ export const ViewportCard: React.FC = () => {
         <DetectionOverlay
           sourceWidth={isDemo ? 1280 : resolution.width || 1280}
           sourceHeight={isDemo ? 720 : resolution.height || 720}
-          mirrored={!isDemo && mirror}
+          mirrored={cameraMode === 'webcam' && mirror}
         />
       )}
 

@@ -5,7 +5,7 @@ import {
   Track,
 } from '@/types/detection';
 
-export type ActiveSourceType = 'synthetic' | 'recorded' | 'websocket';
+export type ActiveSourceType = 'synthetic' | 'recorded' | 'websocket' | 'api';
 
 export interface DetectionState {
   tracks: Track[];
@@ -71,6 +71,8 @@ export const useDetectionStore = create<DetectionState>((set) => ({
           ? 'simulated-synthetic'
           : activeSourceType === 'recorded'
           ? 'demo-recorded'
+          : activeSourceType === 'api'
+          ? 'remote-api'
           : 'remote-websocket',
       resetOnSwitch:
         options?.resetOnSwitch !== undefined

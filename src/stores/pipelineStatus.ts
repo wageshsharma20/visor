@@ -2,7 +2,7 @@ import { useCameraStore } from './cameraStore';
 import { useModelStore } from './modelStore';
 
 export type CameraPipeStatus = 'off' | 'requesting' | 'live' | 'error';
-export type SourcePipeStatus = 'none' | 'webcam' | 'demo';
+export type SourcePipeStatus = 'none' | 'webcam' | 'demo' | 'remote';
 export type ModelPipeStatus = 'none' | 'deploying' | 'running' | 'failed';
 
 export interface PipelineStatus {
@@ -39,7 +39,7 @@ export function usePipelineStatus(): PipelineStatus {
   // 2. Source pipeline status (source is active only when camera is live)
   let source: SourcePipeStatus = 'none';
   if (camera === 'live') {
-    source = cameraMode === 'webcam' ? 'webcam' : 'demo';
+    source = cameraMode === 'webcam' ? 'webcam' : cameraMode === 'remote' ? 'remote' : 'demo';
   }
 
   // 3. Model pipeline status
@@ -65,7 +65,13 @@ export function usePipelineStatus(): PipelineStatus {
       : 'CAM_01 · offline';
 
   const sourceDisplay =
-    source === 'webcam' ? 'WEBCAM' : source === 'demo' ? 'DEMO' : 'NO SOURCE';
+    source === 'webcam'
+      ? 'WEBCAM'
+      : source === 'demo'
+      ? 'DEMO'
+      : source === 'remote'
+      ? 'BACKEND'
+      : 'NO SOURCE';
 
   let modelDisplay = 'NO MODEL';
   if (model === 'running') {
